@@ -1,6 +1,9 @@
 import os
 import pandas as pd
 import numpy as np
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 
 def identify_sig_networks(folder_path):
@@ -24,8 +27,8 @@ def write_sig_networks(network_paths):
 
 
 if __name__ == "__main__":
-    disc_network_paths = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/individual_network_maps/discovery"
-    rep_network_paths = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/individual_network_maps/replication"
+    disc_network_paths = f"{cfg['PUBERTY_INDIVIDUAL_NETWORK_DIR']}/discovery"
+    rep_network_paths = f"{cfg['PUBERTY_INDIVIDUAL_NETWORK_DIR']}/replication"
 
     write_sig_networks(disc_network_paths)
     write_sig_networks(rep_network_paths)

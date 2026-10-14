@@ -5,13 +5,19 @@ library(tibble)
 library(ggplot2)
 library(data.table)
 library(ggpattern)
+
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
 theme_set(theme_classic(base_size = 16))
 
-results_folder_path <- "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/barplots/matrices"
+results_folder_path <- file.path(cfg$PUBERTY_BARPLOTS_DIR, "matrices")
 args = commandArgs(trailingOnly=TRUE)
 set = args[1]
 matrix_filename <- args[2]
-save_folder_path <- paste0("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/barplots/barplots/", set)
+save_folder_path <- file.path(cfg$PUBERTY_BARPLOTS_DIR, "barplots", set)
 results_folder_path <- paste0(results_folder_path, "/", set)
 save_filename <- paste0(save_folder_path, "/", gsub(".csv", ".png", matrix_filename))
 

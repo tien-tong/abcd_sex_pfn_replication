@@ -3,6 +3,12 @@ library(RcppCNPy)
 library(R.matlab)
 library(lme4)
 
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
+
 set.seed(42)
 
 # sets up the behavior new discovery dataframe
@@ -17,6 +23,17 @@ create_behavior_df <- function(filepath, group){
   behavior_new$matched_group <- as.factor(behavior_df$matched_group);
   behavior_new$abcd_site <- as.factor(behavior_df$abcd_site)
   behavior_new$rel_family_id <- as.factor(behavior_df$rel_family_id)
+  # binarizedACE (0 = no, 1 = yes) from the ACE csv: baseline rows only, matched on subject ID.
+  # IDs are compared without their prefixes (sample: INV<id>; ACE csv: sub-<id>)
+  strip_id <- function(id) sub("^(sub-)?(NDAR_?)?(INV)?", "", id)
+  ace_df <- read.csv(cfg$ACE_CSV)
+  missing_cols <- setdiff(c("subject_id", "eventname", "binarizedACE"), names(ace_df))
+  if (length(missing_cols)) stop("Missing column(s) ", paste(missing_cols, collapse = ", "), " in ", cfg$ACE_CSV)
+  ace_df <- ace_df[which(ace_df$eventname == "baseline_year_1_arm_1"), ]
+  if (anyDuplicated(strip_id(ace_df$subject_id))) stop("More than one baseline row per subject in ", cfg$ACE_CSV)
+  behavior_new$binarizedACE <- as.numeric(ace_df[["binarizedACE"]][match(strip_id(behavior_df$subjectkey), strip_id(ace_df$subject_id))])
+  if (!all(behavior_new$binarizedACE %in% c(0, 1, NA))) stop("binarizedACE must be 0/1 in ", cfg$ACE_CSV)
+  print(paste0("binarizedACE found for ", sum(!is.na(behavior_new$binarizedACE)), " of ", nrow(behavior_new), " subjects"))
   return (behavior_new)
 }
 
@@ -37,9 +54,9 @@ create_results_vec <- function(vec_to_save, nonzero_column_index, features_quant
 }
 
 main <- function(){
-    RESULTS_FOLDER <- "/cbica/projects/ash_pfn_sex_diff_abcd/results/univariate_analysis/replication/gams_sex_effects_siblings_removed"
+    RESULTS_FOLDER <- cfg$GAMS_REPLICATION_DIR
     # NEED BEHAVIOR NEW DISCOVERY FILE READ IN (ask arielle)
-    behavior_new <- create_behavior_df("/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/replication_sample_siblings_removed_071524.csv")
+    behavior_new <- create_behavior_df(cfg$REPLICATION_SAMPLE_CSV)
 
     # Setup for matrices
     subjects_quantity <- nrow(behavior_new) # data for ridge subset has this many patients, 3197
@@ -54,7 +71,7 @@ main <- function(){
         dim(Data_I) <- c(subjects_quantity, features_quantity);
         # for each subject, add data to matrix Data_I (each row is a subject?)
         for (k in 1:length(subject_keys)){
-            atlas_file <- paste0("/cbica/projects/ash_pfn_sex_diff_abcd/results/converted_matrices/sub-NDAR", 
+            atlas_file <- paste0(cfg$CONVERTED_MATRICES_DIR, "/sub-NDAR", 
             as.character(subject_keys[k]), "/parcel_1by1/converted_UV_mat.csv")
             mat <- read.csv(atlas_file)
             # insert row into loadings matrix for each of the subjects for each of the networks
@@ -71,60 +88,66 @@ main <- function(){
         FeaturesQuantity_NonZero = dim(Data_I_NonZero)[2];
         ###################################################
 
-        gam_P_Vector <- matrix(0, 1, FeaturesQuantity_NonZero);
-        gam_Z_Vector <- matrix(0, 1, FeaturesQuantity_NonZero);
-        gam_P_FDR_Vector <- matrix(0, 1, FeaturesQuantity_NonZero);
-        gam_P_Bonf_Vector <- matrix(0, 1, FeaturesQuantity_NonZero);
+        # Sex, ACE and sex x ACE effects at each vertex (oSex is an ordered factor, so its coefficient is oSex.L)
+        model_terms <- c(SexEffect = "oSex.L", ACEEffect = "binarizedACE", SexByACEEffect = "oSex.L:binarizedACE")
+        gam_P_Matrix <- matrix(0, length(model_terms), FeaturesQuantity_NonZero, dimnames = list(names(model_terms), NULL));
+        gam_Z_Matrix <- matrix(0, length(model_terms), FeaturesQuantity_NonZero, dimnames = list(names(model_terms), NULL));
         
         # Gam analysis for all of the non zero features in the df
         for (j in 1:FeaturesQuantity_NonZero){
             # subset Data_I_NonZero for column (<59412 columns); essentially loading is
             # weights for each vertex for each participant
             loading_data <- as.numeric(Data_I_NonZero[,j]) 
-            gam_analysis <- bam(loading_data ~  oSex + Motion + s(AgeYears, k=4) + s(abcd_site, bs='re', k=4), method = "fREML", data = behavior_new);
-            gam_P_Vector[j] <- summary(gam_analysis)$p.pv[2];
-            gam_Z_Vector[j] <- qnorm(gam_P_Vector[j] / 2, lower.tail = FALSE);
-            lm_analysis <- lmer(loading_data ~ oSex + Motion + AgeYears + (1|abcd_site), data = behavior_new);
-            Sex_T <- summary(lm_analysis)$coefficients[2, 3];
-            if (Sex_T < 0) {
-                gam_Z_Vector[j] <- -gam_Z_Vector[j];
-            }
+            gam_analysis <- bam(loading_data ~  oSex * binarizedACE + Motion + s(AgeYears, k=4) + s(abcd_site, bs='re', k=4), method = "fREML", data = behavior_new);
+            gam_P_Matrix[, j] <- summary(gam_analysis)$p.pv[model_terms];
+            gam_Z_Matrix[, j] <- qnorm(gam_P_Matrix[, j] / 2, lower.tail = FALSE);
+            lm_analysis <- lmer(loading_data ~ oSex * binarizedACE + Motion + AgeYears + (1|abcd_site), data = behavior_new);
+            # each z takes the sign of the matching lmer t value
+            term_T <- summary(lm_analysis)$coefficients[model_terms, 3];
+            gam_Z_Matrix[term_T < 0, j] <- -gam_Z_Matrix[term_T < 0, j];
         }
 
         if (behavior_new$matched_group[1] == 1){
-            sex_effect_label <-  "/SexEffect_AtlasLoading_Discovery_17_Network_"
+            sample_label <-  "_AtlasLoading_Discovery_17_Network_"
         }
         else{
-            sex_effect_label <- "/SexEffect_AtlasLoading_Replication_17_Network_"
+            sample_label <- "_AtlasLoading_Replication_17_Network_"
         }
 
-        # FDR correction
-        fdr_correction_results <- fdr_correction(gam_P_Vector, gam_Z_Vector, "fdr")
-        gam_p_fdr_vector <- fdr_correction_results$p_fdr
-        gam_z_fdr_sig_vector <- fdr_correction_results$z_sig
-        bonferroni_correction_results <- fdr_correction(gam_P_Vector, gam_Z_Vector, "bonferroni")
-        gam_p_bonf_vector <- bonferroni_correction_results$p_fdr
-        gam_z_bonf_sig_vector <- bonferroni_correction_results$z_sig
+        # Save each term as its own set of files: SexEffect_*, ACEEffect_*, SexByACEEffect_*
+        for (term in names(model_terms)){
+            gam_P_Vector <- gam_P_Matrix[term, ]
+            gam_Z_Vector <- gam_Z_Matrix[term, ]
+            effect_label <- paste0("/", term, sample_label)
+
+            # FDR correction
+            fdr_correction_results <- fdr_correction(gam_P_Vector, gam_Z_Vector, "fdr")
+            gam_p_fdr_vector <- fdr_correction_results$p_fdr
+            gam_z_fdr_sig_vector <- fdr_correction_results$z_sig
+            bonferroni_correction_results <- fdr_correction(gam_P_Vector, gam_Z_Vector, "bonferroni")
+            gam_p_bonf_vector <- bonferroni_correction_results$p_fdr
+            gam_z_bonf_sig_vector <- bonferroni_correction_results$z_sig
         
-        # Write results into matrix
-        # Saves all nonzero columns into one long vector of full length features_quantitiy 
-        gam_p_vector_all <- create_results_vec(gam_P_Vector, NonZero_ColumnIndex, features_quantity)
-        gam_z_vector_all <- create_results_vec(gam_Z_Vector, NonZero_ColumnIndex, features_quantity)
-        gam_p_fdr_vector_all <- create_results_vec(gam_p_fdr_vector, NonZero_ColumnIndex, features_quantity)
-        gam_z_fdr_vector_sig_all <- create_results_vec(gam_z_fdr_sig_vector, NonZero_ColumnIndex, features_quantity)
-        gam_p_bonf_vector_all <- create_results_vec(gam_p_bonf_vector, NonZero_ColumnIndex, features_quantity)
-        gam_z_bonf_vector_sig_all <- create_results_vec(gam_z_bonf_sig_vector, NonZero_ColumnIndex, features_quantity)
+            # Write results into matrix
+            # Saves all nonzero columns into one long vector of full length features_quantitiy 
+            gam_p_vector_all <- create_results_vec(gam_P_Vector, NonZero_ColumnIndex, features_quantity)
+            gam_z_vector_all <- create_results_vec(gam_Z_Vector, NonZero_ColumnIndex, features_quantity)
+            gam_p_fdr_vector_all <- create_results_vec(gam_p_fdr_vector, NonZero_ColumnIndex, features_quantity)
+            gam_z_fdr_vector_sig_all <- create_results_vec(gam_z_fdr_sig_vector, NonZero_ColumnIndex, features_quantity)
+            gam_p_bonf_vector_all <- create_results_vec(gam_p_bonf_vector, NonZero_ColumnIndex, features_quantity)
+            gam_z_bonf_vector_sig_all <- create_results_vec(gam_z_bonf_sig_vector, NonZero_ColumnIndex, features_quantity)
         
-        writeMat(paste0(RESULTS_FOLDER, sex_effect_label, as.character(i), '.mat'), 
-        Gam_P_Vector_All = gam_p_vector_all, Gam_Z_Vector_All = gam_z_vector_all, Gam_P_FDR_Vector_All = gam_p_fdr_vector_all,
-        Gam_Z_FDR_Sig_Vector_All = gam_z_fdr_vector_sig_all, Gam_P_Bonf_Vector_All = gam_p_bonf_vector_all, 
-        Gam_Z_Bonf_Sig_Vector_All = gam_z_bonf_vector_sig_all)
+            writeMat(paste0(RESULTS_FOLDER, effect_label, as.character(i), '.mat'), 
+            Gam_P_Vector_All = gam_p_vector_all, Gam_Z_Vector_All = gam_z_vector_all, Gam_P_FDR_Vector_All = gam_p_fdr_vector_all,
+            Gam_Z_FDR_Sig_Vector_All = gam_z_fdr_vector_sig_all, Gam_P_Bonf_Vector_All = gam_p_bonf_vector_all, 
+            Gam_Z_Bonf_Sig_Vector_All = gam_z_bonf_vector_sig_all)
         
 
-        results_df <- data.frame(Gam_P_Vector_All = c(gam_p_vector_all), Gam_Z_Vector_All = c(gam_z_vector_all), Gam_P_FDR_Vector_All = c(gam_p_fdr_vector_all),
-        Gam_Z_FDR_Sig_Vector_All = c(gam_z_fdr_vector_sig_all), Gam_P_Bonf_Vector_All = c(gam_p_bonf_vector_all), 
-        Gam_Z_Bonf_Sig_Vector_All = c(gam_z_bonf_vector_sig_all))
-        write.csv(results_df, paste0(RESULTS_FOLDER, sex_effect_label, as.character(i), '.csv'))
+            results_df <- data.frame(Gam_P_Vector_All = c(gam_p_vector_all), Gam_Z_Vector_All = c(gam_z_vector_all), Gam_P_FDR_Vector_All = c(gam_p_fdr_vector_all),
+            Gam_Z_FDR_Sig_Vector_All = c(gam_z_fdr_vector_sig_all), Gam_P_Bonf_Vector_All = c(gam_p_bonf_vector_all), 
+            Gam_Z_Bonf_Sig_Vector_All = c(gam_z_bonf_vector_sig_all))
+            write.csv(results_df, paste0(RESULTS_FOLDER, effect_label, as.character(i), '.csv'))
+        }
     } 
 }
 

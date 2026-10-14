@@ -10,21 +10,32 @@ library(matrixStats)
 library(plotrix)
 library(scales)
 library(gifti)
+
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
 theme_set(theme_classic(base_size = 16))
 
 
 #brain input is from SVM run 100x
 # read in LH parc
-lh_schaefer1000 <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_L.csv")
+lh_schaefer1000 <- read.table(cfg$SCHAEFER1000_LABELS_CSV)
 lh_schaefer1000 <- lh_schaefer1000[1:10242,]
 # read in color lookup table
-lh_schaefer1000_ct <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_cttable.csv")
+lh_schaefer1000_ct <- read.table(cfg$SCHAEFER1000_CTTABLE_CSV)
 lh_schaefer1000_ct_500 <- as.data.frame(lh_schaefer1000_ct[-1,])
 colnames(lh_schaefer1000_ct_500) <- "V1"
 setDT(lh_schaefer1000_ct_500, keep.rownames = "parcNum")
 
 # read in brain img data
-data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_discovery_LH.fsaverage5.func.gii')
+# Which map to test: gams_uncorrected_discovery, gams_uncorrected_replication, gams_fdr_discovery or gams_fdr_replication
+# (the <map_name>_LH.fsaverage5.func.gii files made by fslr_to_fsaverage5.sh); pass as the first argument or edit here
+args <- commandArgs(trailingOnly = TRUE)
+map_name <- if (length(args) >= 1) args[1] else "gams_uncorrected_discovery"
+map_label <- sub("^gams_", "", map_name)
+data_brain1 <- readgii(file.path(cfg$GAMS_GII_DIR, paste0(map_name, "_LH.fsaverage5.func.gii")))
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_replication_LH.fsaverage5.func.gii')
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_fdr_discovery_LH.fsaverage5.func.gii')
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_fdr_replication_LH.fsaverage5.func.gii')
@@ -50,11 +61,11 @@ data_parc_lh_parcnum_sort <- data_parc_lh_parcnum[order(data_parc_lh_parcnum$par
 
 
 ###read in gene data
-geneinfo <- readMat("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/AHBAprocessed/ROIxGene_Schaefer1000_INT.mat")
+geneinfo <- readMat(cfg$AHBA_ROI_GENE_MAT)
 geneinfo1 <- lapply(geneinfo, unlist, use.names=FALSE)
 geneMat <- as.data.frame(geneinfo1$parcelExpression)
 geneMat1 <- subset(geneMat, select = -V1)
-gene <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/GeneSymbol.csv",header=TRUE)
+gene <- read.csv(cfg$GENE_SYMBOL_CSV,header=TRUE)
 colnames(gene) <- "V1"
 colnames(geneMat1) <- gene$V1
 geneMat2 <- cbind(lh_schaefer1000_ct_500, geneMat1)
@@ -67,7 +78,7 @@ geneMat2_sort_500 <- subset(geneMat2_sort, select=-V1)
 img_geneMatChrom_500 <- merge(data_parc_lh_parcnum_sort,geneMat2_sort_500, by="parcNum")
 
 
-rois <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_2mmCentroid_RAS.csv") 
+rois <- read.csv(cfg$SCHAEFER1000_CENTROIDS_CSV) 
 #above csv downloaded from here- https://github.com/ThomasYeoLab/CBIG/blob/master/stable_projects/brain_parcellation/Schaefer2018_LocalGlobal/Parcellations/MNI/Centroid_coordinates/Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_2mm.Centroid_RAS.csv
 #removed spaces in column names prior to reading in
 roislh <- rois[1:500,]
@@ -86,7 +97,7 @@ geneMatChrom_500_comp <- img_geneMatChrom_roi_500_comp[(length(othercols)+1):(le
 
 
 #Select genes for chromosome enrichement 
-chrom <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/Richiardi_Data_File_S2_ChrAdded.csv")
+chrom <- read.csv(cfg$CHROMOSOME_GENES_CSV)
 chromRefined <- chrom$chromosome_name[chrom$gene_symbol %in% gene$V1] #16000, which of those are in the 20, 000? indexing the 16000
 geneRefined <- chrom$gene_symbol[chrom$gene_symbol %in% gene$V1] #16000, which of those are in the 20, 000? indexing the 16000
 geneMatChrom_500_comp_fin <-geneMatChrom_500_comp[,match(geneRefined,colnames(geneMatChrom_500_comp),nomatch = 0)] #target gene first. where in #2 is #1
@@ -157,7 +168,7 @@ for (j in 1:length(t5$chromosome)){
 
 df_enrich_pval <- merge(t5, perm.pval, by = "chromosome")
 df_enrich_pval1 <- df_enrich_pval[with(df_enrich_pval, order(-t7)),]
-write.csv(df_enrich_pval1, '/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/chromosome_enrichment/uncorrected_discovery_pvals.csv')
+write.csv(df_enrich_pval1, file.path(cfg$CHROMOSOME_ENRICHMENT_DIR, paste0(map_label, "_pvals.csv")))
 
 
 
@@ -230,7 +241,7 @@ p<-ggplot(data=t9, aes(x=chromosome, y=Rank)) +
   #scale_y_discrete(breaks = c(-2000, -1000, 1000)) +
   theme(legend.position="none") + theme(axis.text.x = element_text(size= 12), axis.text.y = element_text(size= 12, color = bordermap$BorderColor), axis.title=element_text(size = 18))
 
-ggsave("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/finalized_figs/genetics/chromosomal_enrichments/high_res/gams_uncorrected_discovery_plot.png", plot=p, height=5, width=5, dpi=300)
+ggsave(file.path(cfg$CHROMOSOME_ENRICHMENT_DIR, paste0(map_name, "_plot.png")), plot=p, height=5, width=5, dpi=300)
 
 #dev.off()
 
@@ -238,7 +249,7 @@ ggsave("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/finalized_figs/gen
 df3_gene_X <- subset(df3, df3$chromRefined=='X')
 df3_gene_ranked_X <- df3_gene_X[order(df3_gene_X$corr, decreasing=TRUE), ]
 df3_gene_X_ranked_top20 <- df3_gene_ranked_X[1:20, ]
-write.csv(df3_gene_X_ranked_top20, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/top20_enrichment_tables/chrom_X_top20_uncorrected_discovery.csv")
+write.csv(df3_gene_X_ranked_top20, file.path(cfg$TOP20_TABLES_DIR, paste0("chrom_X_top20_", map_label, ".csv")))
 
 
 

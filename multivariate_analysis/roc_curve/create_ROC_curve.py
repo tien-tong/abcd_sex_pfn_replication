@@ -3,6 +3,9 @@ import numpy as np
 import os
 from sklearn.metrics import roc_curve, RocCurveDisplay, auc
 import matplotlib.pyplot as plt
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 
 def create_decision_df(data_for_ridge, res_multitimes_path):
@@ -127,17 +130,17 @@ def plot_ROC_curve(sex, decision_values_df, save_filepath_png, save_filepath_df)
 
 
 if __name__ == "__main__":
-    res_multitimes_path = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/res_100_times_roc_check"
+    res_multitimes_path = cfg["SVM_RESULTS_DIR"]
 
-    discovery_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/discovery_sample_siblings_removed_071524.csv")
-    save_filepath = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/discovery_svm_ROC_siblings_removed_adjusted_font_check.png"
-    save_filepath_df = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/discovery_svm_ROC_siblings_removed_data_check.csv"
+    discovery_data_for_ridge = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
+    save_filepath = f"{cfg['SVM_OUTPUT_DIR']}/discovery_svm_ROC_siblings_removed_adjusted_font_check.png"
+    save_filepath_df = cfg["ROC_DATA_DISCOVERY_CSV"]
     discovery_decision_df, sex = create_decision_df(discovery_data_for_ridge, res_multitimes_path)
     discovery_auc = plot_ROC_curve(sex, discovery_decision_df, save_filepath, save_filepath_df)
 
-    replication_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/replication_sample_siblings_removed_071524.csv")
-    save_filepath_replication = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/replication_svm_ROC_siblings_removed_adjusted_font_check.png"
-    save_filepath_replication_df = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/replication_svm_ROC_siblings_removed_data_check.csv"
+    replication_data_for_ridge = pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"])
+    save_filepath_replication = f"{cfg['SVM_OUTPUT_DIR']}/replication_svm_ROC_siblings_removed_adjusted_font_check.png"
+    save_filepath_replication_df = cfg["ROC_DATA_REPLICATION_CSV"]
     replication_decision_df, rep_sex = create_decision_df_replication(replication_data_for_ridge, res_multitimes_path)
     replication_auc = plot_ROC_curve(rep_sex, replication_decision_df, save_filepath_replication, save_filepath_replication_df)
 
@@ -145,7 +148,7 @@ if __name__ == "__main__":
     auc_scores['set'] = ['discovery', 'replication']
     auc_scores['auc'] = [discovery_auc, replication_auc]
 
-    auc_scores.to_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/auc_scores_svm_100_runs_check.csv")
+    auc_scores.to_csv(f"{cfg['SVM_OUTPUT_DIR']}/auc_scores_svm_100_runs_check.csv")
 
 
 

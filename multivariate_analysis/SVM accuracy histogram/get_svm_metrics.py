@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix
 import scipy.stats as st
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def get_metrics(data_for_ridge, results_folder, set):
     # Use the data for ridge discovery subject ids as the ordering for the ids
@@ -72,22 +76,22 @@ def make_avg_table(save_file, set_order, accuracies, sensitivities, specificitie
 
     
 if __name__ == "__main__":
-    discovery_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/discovery_sample_siblings_removed_071524.csv")
-    res_multitimes_path = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/res_100_times_roc_check"
-    avg_table_filename = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/svm_100_times_check_metrics.csv"
+    discovery_data_for_ridge = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
+    res_multitimes_path = cfg["SVM_RESULTS_DIR"]
+    avg_table_filename = cfg["SVM_METRICS_CSV"]
     accuracies_disc, sensitivity_disc, specificity_disc = get_metrics(discovery_data_for_ridge, res_multitimes_path, "discovery")
     #print(accuracies_disc)
     print(f"Discovery - avg acc: {np.mean(accuracies_disc)}, CI: {st.t.interval(confidence=0.95, df=len(accuracies_disc)-1, loc=np.mean(accuracies_disc), scale=st.sem(accuracies_disc))}")
 
 
-    replication_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/replication_sample_siblings_removed_071524.csv")
+    replication_data_for_ridge = pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"])
     accuracies_rep, sensitivity_rep, specificity_rep = get_metrics(replication_data_for_ridge, res_multitimes_path, "replication")
     print(f"Replication - avg acc: {np.mean(accuracies_rep)}, CI: {st.t.interval(confidence=0.95, df=len(accuracies_rep)-1, loc=np.mean(accuracies_rep), scale=st.sem(accuracies_rep))}")
     
 
     accuracies_100 = [np.mean(accuracies_disc), np.mean(accuracies_rep)]
     sensitivity_100 = [np.mean(sensitivity_disc), np.mean(sensitivity_rep)]
-    specificity_100 = [np.mean(specificity_disc), np.mean(sensitivity_rep)]
+    specificity_100 = [np.mean(specificity_disc), np.mean(specificity_rep)]
     ci_100 = [str(st.t.interval(confidence=0.95, df=len(accuracies_disc)-1, loc=np.mean(accuracies_disc), scale=st.sem(accuracies_disc))), str(st.t.interval(confidence=0.95, df=len(accuracies_rep)-1, loc=np.mean(accuracies_rep), scale=st.sem(accuracies_rep)))]
 
 

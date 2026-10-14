@@ -1,0 +1,156 @@
+# =============================================================================
+# CONFIG.txt - every file path used by Parts 3-10 of the pipeline
+# =============================================================================
+# One KEY="value" per line. A value may use ${KEY} to refer to a key defined
+# ABOVE it (or to an environment variable such as ${HOME}). Comments go on their
+# own line. The file is valid bash, so it is read by
+#   SLURM job scripts : source "$SLURM_SUBMIT_DIR/CONFIG.txt"  (run sbatch from the repo root)
+#   Python scripts    : from pfn_config import cfg   ->  cfg["KEY"]   (pfn_config.py)
+#   R scripts         : cfg$KEY                                       (pfn_config.R)
+# Python/R scripts find this file at the repo root on their own.
+#
+# Layout: only code is tracked by git. The data folders sit in the clone but are
+# not tracked (.gitignore):
+#   CODE_DIR/inputs/            copied from CUBIC
+#   CODE_DIR/reference_files/   downloaded reference files
+#   CODE_DIR/results/           everything the pipeline writes
+# The setup script in DATA_INPUTS.md creates them.
+# =============================================================================
+
+
+# ---- 1. EDIT THESE for your machine -----------------------------------------
+# Where this repo is cloned (used by the SLURM job scripts to find the scripts)
+CODE_DIR="/cbica/home/tongt/abcd_sex_pfn"
+# Connectome Workbench executable (output of `which wb_command`)
+WB_COMMAND="/Applications/workbench/bin_macosx64/wb_command"
+# Data folders (not tracked by git). Results are large: the converted matrices alone are ~100 GB
+INPUT_DIR="${CODE_DIR}/inputs"
+REFERENCE_DIR="${CODE_DIR}/reference_files"
+RESULTS_DIR="${CODE_DIR}/results"
+
+
+# ---- 2. Inputs copied from CUBIC into INPUT_DIR (setup script in DATA_INPUTS.md) ----
+CONTAINER_SIF="${INPUT_DIR}/sex_differences_replication_0.0.3.sif"
+# Per-subject PFN loadings: sub-NDAR<id>/IndividualParcel_Final_sbj1_comp17_alphaS21_1_alphaL300_vxInfo1_ard0_eta0/final_UV.mat
+SUBJECT_DATA_DIR="${INPUT_DIR}/subject_data"
+# Discovery / replication samples with siblings removed (Part 1, step 2)
+DISCOVERY_SAMPLE_CSV="${INPUT_DIR}/discovery_sample_siblings_removed_071524.csv"
+REPLICATION_SAMPLE_CSV="${INPUT_DIR}/replication_sample_siblings_removed_071524.csv"
+# ACE data for the Part 3 GAMs: columns subject_id (sub-<id>), eventname and binarizedACE (0/1); set to your file
+ACE_CSV="${INPUT_DIR}/ace.csv"
+# CIFTI header template (fsLR-32k, 59,412 cortical grayordinates); only its header is used
+CIFTI_TEMPLATE_DSCALAR="${INPUT_DIR}/unthresholded_abs_sum_replication_071624.dscalar.nii"
+# Gene / cell-type tables for the enrichment analyses (Part 5)
+GENETICS_FILES_DIR="${INPUT_DIR}/genetics_files"
+SCHAEFER1000_CENTROIDS_CSV="${GENETICS_FILES_DIR}/Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_2mmCentroid_RAS.csv"
+CHROMOSOME_GENES_CSV="${GENETICS_FILES_DIR}/Richiardi_Data_File_S2_ChrAdded.csv"
+CELLTYPES_PSP_CSV="${GENETICS_FILES_DIR}/cellTypes/celltypes_PSP.csv"
+CELLTYPES_LAKE_CSV="${GENETICS_FILES_DIR}/cellTypes/Lake18_celltypes.csv"
+BRAIN_GENES_HPA_CSV="${GENETICS_FILES_DIR}/cellTypes/brain_genes_HPA.csv"
+# ABCD hormone and pubertal development data (Parts 9-10)
+HORMONE_PDS_DIR="${INPUT_DIR}/hormone_pds_data"
+HORMONE_CSV="${HORMONE_PDS_DIR}/ph_y_sal_horm.csv"
+PDS_CSV="${HORMONE_PDS_DIR}/ph_p_pds.csv"
+DHEA_TXT="${HORMONE_PDS_DIR}/abcd_hsss01.txt"
+# ABCD site IDs (Part 10)
+DEAP_SITE_RDS="${INPUT_DIR}/DEAP-siteID.rds"
+# PNC GAM absolute-sum maps for the PNC vs ABCD spin test (Part 6)
+PNC_SPINTEST_DIR="${INPUT_DIR}/pnc_spintest"
+PNC_GAMS_ABS_SUM_LH_CSV="${PNC_SPINTEST_DIR}/GamSexAbssum_lh.csv"
+PNC_GAMS_ABS_SUM_RH_CSV="${PNC_SPINTEST_DIR}/GamSexAbssum_rh.csv"
+
+
+# ---- 3. Reference files in REFERENCE_DIR ------------------------------------
+# Downloaded by download_reference_files.sh from github.com/PennLINC/S-A_ArchetypalAxis
+MEDIAL_WALL_MASK_LH="${REFERENCE_DIR}/medialwall.mask.leftcortex.csv"
+MEDIAL_WALL_MASK_RH="${REFERENCE_DIR}/medialwall.mask.rightcortex.csv"
+FSAVERAGE5_RESAMPLE_DIR="${REFERENCE_DIR}/fsaverage5_resample"
+# AHBA Schaefer-1000 files (Part 5); no known public or CUBIC source yet, see DATA_INPUTS.md
+AHBA_SCHAEFER1000_ANNOT="${REFERENCE_DIR}/lh.Schaefer1000_7net.annot"
+AHBA_ROI_GENE_MAT="${REFERENCE_DIR}/ROIxGene_Schaefer1000_INT.mat"
+
+
+# ---- 4. Outputs (all under RESULTS_DIR) -------------------------------------
+COMMANDS_LOG="${RESULTS_DIR}/commands_run.txt"
+
+# Part 3 - univariate GAMs
+CONVERTED_MATRICES_DIR="${RESULTS_DIR}/converted_matrices"
+UNIVARIATE_DIR="${RESULTS_DIR}/univariate_analysis"
+GAMS_DISCOVERY_DIR="${UNIVARIATE_DIR}/discovery/gams_sex_effects_siblings_removed"
+GAMS_REPLICATION_DIR="${UNIVARIATE_DIR}/replication/gams_sex_effects_siblings_removed"
+GAMS_ABS_SUM_DISCOVERY_CSV="${UNIVARIATE_DIR}/uncorrected_abs_sum_matrix_discovery.csv"
+GAMS_ABS_SUM_REPLICATION_CSV="${UNIVARIATE_DIR}/uncorrected_abs_sum_matrix_replication.csv"
+GAMS_ABS_SUM_DISCOVERY_DSCALAR="${UNIVARIATE_DIR}/uncorrected_abs_sum_matrix_discovery.dscalar.nii"
+GAMS_ABS_SUM_REPLICATION_DSCALAR="${UNIVARIATE_DIR}/uncorrected_abs_sum_matrix_replication.dscalar.nii"
+GAMS_FDR_ABS_SUM_DISCOVERY_CSV="${UNIVARIATE_DIR}/fdr_abs_sum_matrix_discovery.csv"
+GAMS_FDR_ABS_SUM_REPLICATION_CSV="${UNIVARIATE_DIR}/fdr_abs_sum_matrix_replication.csv"
+GAMS_FDR_ABS_SUM_DISCOVERY_DSCALAR="${UNIVARIATE_DIR}/fdr_abs_sum_matrix_discovery.dscalar.nii"
+GAMS_FDR_ABS_SUM_REPLICATION_DSCALAR="${UNIVARIATE_DIR}/fdr_abs_sum_matrix_replication.dscalar.nii"
+GAMS_BARPLOT_MAT_DISCOVERY_CSV="${UNIVARIATE_DIR}/discovery_barplot_all_networks_mat.csv"
+GAMS_BARPLOT_MAT_REPLICATION_CSV="${UNIVARIATE_DIR}/replication_barplot_all_networks_mat.csv"
+INDIVIDUAL_NETWORK_DIR="${UNIVARIATE_DIR}/individual_network_matrices"
+
+# Part 4 - multivariate SVM
+NONZERO_MATRIX_DISCOVERY_NPY="${RESULTS_DIR}/AtlasLoading_All_RemoveZero_discovery_siblings_removed.npy"
+NONZERO_MATRIX_REPLICATION_NPY="${RESULTS_DIR}/AtlasLoading_All_RemoveZero_replication_siblings_removed.npy"
+NONZERO_INDICES_DISCOVERY_CSV="${RESULTS_DIR}/AtlasLoading_All_RemoveZero_discovery_siblings_removed_nonzero_indices.csv"
+NONZERO_INDICES_REPLICATION_CSV="${RESULTS_DIR}/AtlasLoading_All_RemoveZero_replication_siblings_removed_nonzero_indices.csv"
+SVM_RESULTS_DIR="${RESULTS_DIR}/multivariate_analysis/res_100_times_roc_check"
+SVM_PERMUTATION_DIR="${RESULTS_DIR}/multivariate_analysis/permutation_1000_times_112124_check"
+SVM_WEIGHTS_DISCOVERY_NPY="${SVM_RESULTS_DIR}/w_brain_sex_matrix_100_times_discovery_check.npy"
+SVM_WEIGHTS_REPLICATION_NPY="${SVM_RESULTS_DIR}/w_brain_sex_matrix_100_times_replication_check.npy"
+HAUFE_WEIGHTS_DISCOVERY_NPY="${SVM_RESULTS_DIR}/discovery_haufe_transformed_100_runs_weights_check.npy"
+HAUFE_WEIGHTS_REPLICATION_NPY="${SVM_RESULTS_DIR}/replication_haufe_transformed_100_runs_weights_check.npy"
+SVM_OUTPUT_DIR="${RESULTS_DIR}/multivariate_analysis/svm_check_run"
+SVM_ABS_SUM_DISCOVERY_NPY="${SVM_OUTPUT_DIR}/abs_sum_weight_brain_mat_discovery_haufe_100_runs_112124_check.npy"
+SVM_ABS_SUM_REPLICATION_NPY="${SVM_OUTPUT_DIR}/abs_sum_weight_brain_mat_replication_haufe_100_runs_112124_check.npy"
+SVM_ABS_SUM_DISCOVERY_DSCALAR="${SVM_OUTPUT_DIR}/svm_discovery_abs_sum_haufe_weights.dscalar.nii"
+SVM_ABS_SUM_REPLICATION_DSCALAR="${SVM_OUTPUT_DIR}/svm_replication_abs_sum_haufe_weights.dscalar.nii"
+PERMUTATION_ACCURACY_DISCOVERY_CSV="${SVM_OUTPUT_DIR}/discovery_permutation_accuracy_112124_check.csv"
+PERMUTATION_ACCURACY_REPLICATION_CSV="${SVM_OUTPUT_DIR}/replication_permutation_accuracy_112124_check.csv"
+ROC_DATA_DISCOVERY_CSV="${SVM_OUTPUT_DIR}/discovery_svm_ROC_siblings_removed_data_check.csv"
+ROC_DATA_REPLICATION_CSV="${SVM_OUTPUT_DIR}/replication_svm_ROC_siblings_removed_data_check.csv"
+SVM_METRICS_CSV="${SVM_OUTPUT_DIR}/svm_100_times_check_metrics.csv"
+
+# Part 5 - genetics
+GENETICS_DIR="${RESULTS_DIR}/genetics"
+SCHAEFER1000_LABELS_CSV="${GENETICS_DIR}/lh_Schaefer1000_7net_L.csv"
+SCHAEFER1000_CTTABLE_CSV="${GENETICS_DIR}/lh_Schaefer1000_7net_cttable.csv"
+GENE_SYMBOL_CSV="${GENETICS_DIR}/GeneSymbol.csv"
+GAMS_GII_DIR="${GENETICS_DIR}/gams_gii_files"
+CHROMOSOME_ENRICHMENT_DIR="${GENETICS_DIR}/chromosome_enrichment"
+CELLTYPE_ENRICHMENT_DIR="${GENETICS_DIR}/celltype_enrichment"
+PSP_ENRICHMENT_DIR="${GENETICS_DIR}/PSP_enrichment"
+GO_ENRICHMENT_DIR="${GENETICS_DIR}/go_enrichments"
+TOP20_TABLES_DIR="${GENETICS_DIR}/top20_enrichment_tables"
+
+# Part 6 - spin tests
+SPIN_TESTS_DIR="${RESULTS_DIR}/spin_tests"
+MEDIAL_WALL_MAPS_DIR="${SPIN_TESTS_DIR}/medial_wall_maps"
+SPIN_GIFTI_DIR="${SPIN_TESTS_DIR}/results_gifti"
+SPIN_RESULTS_DIR="${SPIN_TESTS_DIR}/results"
+PNC_DIR="${SPIN_TESTS_DIR}/PNC_data"
+PNC_GAMS_ABS_SUM_LH_GII="${PNC_DIR}/gams_abs_sum_lh.gii"
+PNC_GAMS_ABS_SUM_RH_GII="${PNC_DIR}/gams_abs_sum_rh.gii"
+PNC_GAMS_ABS_SUM_FSLR_GII="${PNC_DIR}/Gam_abs_sum_fslr.gii"
+PNC_GAMS_ABS_SUM_FSLR_NO_MEDIAL_WALL_CSV="${PNC_DIR}/PNC_gams_abs_sum_all_fslr.csv"
+
+# Part 7 - other figures
+HEX_PLOTS_DIR="${RESULTS_DIR}/hex_plots"
+FIGURE_S8_DIR="${RESULTS_DIR}/figure_s8_barplots"
+
+# Part 8 - network-specific SVMs
+NETWORK_SPECIFIC_MATRICES_DIR="${RESULTS_DIR}/network_specific_matrices"
+NETWORK_SPECIFIC_RESULTS_DIR="${RESULTS_DIR}/multivariate_analysis/network_specific_models_112124"
+NETWORK_ACCURACY_DISCOVERY_CSV="${SVM_OUTPUT_DIR}/discovery_network_specific_model_accuracies.csv"
+NETWORK_ACCURACY_REPLICATION_CSV="${SVM_OUTPUT_DIR}/replication_network_specific_model_accuracies.csv"
+
+# Part 9 - pubertal analyses
+PUBERTY_DATA_DIR="${RESULTS_DIR}/puberty_data"
+PUBERTY_RESULTS_DIR="${RESULTS_DIR}/puberty_analyses_2"
+PUBERTY_ABS_SUM_DIR="${RESULTS_DIR}/puberty_abs_sum_maps"
+PUBERTY_BARPLOTS_DIR="${RESULTS_DIR}/puberty_barplots"
+PUBERTY_INDIVIDUAL_NETWORK_DIR="${RESULTS_DIR}/puberty_individual_network_maps"
+
+# Part 10 - demographics table
+DEMOGRAPHICS_TABLE_CSV="${RESULTS_DIR}/demographics/ABCD_pfns_demographic_table.csv"

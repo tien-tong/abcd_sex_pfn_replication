@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def get_metrics(data_for_ridge, results_folder, set, save_filename):
     # Use the data for ridge discovery subject ids as the ordering for the ids
@@ -58,14 +62,14 @@ def get_metrics(data_for_ridge, results_folder, set, save_filename):
     accuracy_df.to_csv(save_filename)
 
 if __name__ == "__main__":
-    discovery_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/discovery_sample_siblings_removed_071524.csv")
-    res_multitimes_path = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/network_specific_models_112124"
-    disc_avg_table_filename = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/discovery_network_specific_model_accuracies.csv"
+    discovery_data_for_ridge = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
+    res_multitimes_path = cfg["NETWORK_SPECIFIC_RESULTS_DIR"]
+    disc_avg_table_filename = cfg["NETWORK_ACCURACY_DISCOVERY_CSV"]
     get_metrics(discovery_data_for_ridge, res_multitimes_path, "discovery", disc_avg_table_filename)
 
-    replication_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/replication_sample_siblings_removed_071524.csv")
-    res_multitimes_path = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/network_specific_models_112124"
-    rep_avg_table_filename = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/replication_network_specific_model_accuracies.csv"
+    replication_data_for_ridge = pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"])
+    res_multitimes_path = cfg["NETWORK_SPECIFIC_RESULTS_DIR"]
+    rep_avg_table_filename = cfg["NETWORK_ACCURACY_REPLICATION_CSV"]
     get_metrics(replication_data_for_ridge, res_multitimes_path, "replication", rep_avg_table_filename)
 
 

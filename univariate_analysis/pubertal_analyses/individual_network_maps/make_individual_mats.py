@@ -1,11 +1,14 @@
 import os
+import sys
 import pandas as pd
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 if __name__ == "__main__":
-    disc_matrices_folder = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_analyses_2/discovery"
-    rep_matrices_folder = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_analyses_2/replication"
-    disc_individual_networks_folder = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses_2/individual_network_maps/discovery"
-    rep_individual_networks_folder = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses_2/individual_network_maps/replication"
+    disc_matrices_folder = f"{cfg['PUBERTY_RESULTS_DIR']}/discovery"
+    rep_matrices_folder = f"{cfg['PUBERTY_RESULTS_DIR']}/replication"
+    disc_individual_networks_folder = f"{cfg['PUBERTY_INDIVIDUAL_NETWORK_DIR']}/discovery"
+    rep_individual_networks_folder = f"{cfg['PUBERTY_INDIVIDUAL_NETWORK_DIR']}/replication"
 
     for folder_name in os.listdir(disc_matrices_folder):
         if not os.path.exists(f"{disc_individual_networks_folder}/{folder_name}"):

@@ -12,6 +12,8 @@ from sklearn import metrics
 import os
 from sklearn.metrics import confusion_matrix
 import random
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 
 '''
@@ -267,13 +269,13 @@ def svm_wrapper(c_range_start, c_range_end, idx_time, results_folder, discovery_
 
 if __name__ == "__main__":
     # Global variables
-    discovery_nonzero_mat_filename = '/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_discovery_siblings_removed.npy'
-    replication_nonzero_mat_filename = '/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_replication_siblings_removed.npy'
-    discovery_data_for_ridge = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/discovery_sample_siblings_removed_071524.csv')
-    replication_data_for_ridge = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/replication_sample_siblings_removed_071524.csv')
-    discovery_nonzero_indices = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_discovery_siblings_removed_nonzero_indices.csv')
-    replication_nonzero_indices = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_replication_siblings_removed_nonzero_indices.csv')
-    results_folder = "/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/permutation_1000_times_112124_check"
+    discovery_nonzero_mat_filename = cfg["NONZERO_MATRIX_DISCOVERY_NPY"]
+    replication_nonzero_mat_filename = cfg["NONZERO_MATRIX_REPLICATION_NPY"]
+    discovery_data_for_ridge = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
+    replication_data_for_ridge = pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"])
+    discovery_nonzero_indices = pd.read_csv(cfg["NONZERO_INDICES_DISCOVERY_CSV"])
+    replication_nonzero_indices = pd.read_csv(cfg["NONZERO_INDICES_REPLICATION_CSV"])
+    results_folder = cfg["SVM_PERMUTATION_DIR"]
     # Get user input
     c_range_start = int(sys.argv[1])
     c_range_end = int(sys.argv[2])

@@ -3,8 +3,11 @@
 #SBATCH --mem=50G
 #SBATCH --time=1-00:00:00
 
+# File paths come from CONFIG.txt in the folder you ran sbatch from (the repo root)
+source "$SLURM_SUBMIT_DIR/CONFIG.txt"
+
 set=$1
 behavior_csv=$2
 test_name=$3
 
-singularity run --cleanenv /cbica/projects/ash_pfn_sex_diff_abcd/software/containers/sex_differences_replication_0.0.3.sif Rscript --save /cbica/projects/ash_pfn_sex_diff_abcd/dropbox/puberty_scripts_2/abcd_puberty_hormones.R $set $behavior_csv $test_name FALSE ert TRUE
+singularity run --cleanenv "$CONTAINER_SIF" Rscript --save "$CODE_DIR/univariate_analysis/pubertal_analyses/puberty_scripts/abcd_puberty_hormones.R" $set "$behavior_csv" $test_name FALSE ert TRUE

@@ -2,12 +2,15 @@ import h5py
 import numpy as np
 import os
 import pandas as pd
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 
 if __name__ == "__main__":
     # loading folder and folder where you store converted mat files
-    ATLAS_LOADING_FOLDER = "/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/subject_data"
-    STORAGE_FOLDER = "/cbica/projects/ash_pfn_sex_diff_abcd/results/converted_matrices"
+    ATLAS_LOADING_FOLDER = cfg["SUBJECT_DATA_DIR"]
+    STORAGE_FOLDER = cfg["CONVERTED_MATRICES_DIR"]
 
     # read in behavior dataframe to get the subject keys (need to change this reference)
     subject_folders = os.listdir(ATLAS_LOADING_FOLDER)

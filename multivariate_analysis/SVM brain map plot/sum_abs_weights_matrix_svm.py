@@ -1,5 +1,9 @@
 import pandas as pd
 import numpy as np
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def create_abs_sum_matrix(matrix_filename, save_filename):
     # Load in haufe transformed weight matrix of shape (17, 59412)
@@ -13,5 +17,5 @@ def create_abs_sum_matrix(matrix_filename, save_filename):
     print("Job done!")
 
 if __name__ == "__main__":
-    create_abs_sum_matrix("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/discovery_haufe_transformed_100_runs_weights_check.npy", "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/abs_sum_weight_brain_mat_discovery_haufe_100_runs_112124_check.npy")
-    create_abs_sum_matrix("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/replication_haufe_transformed_100_runs_weights_check.npy", "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/abs_sum_weight_brain_mat_replication_haufe_100_runs_112124_check.npy")
+    create_abs_sum_matrix(cfg["HAUFE_WEIGHTS_DISCOVERY_NPY"], cfg["SVM_ABS_SUM_DISCOVERY_NPY"])
+    create_abs_sum_matrix(cfg["HAUFE_WEIGHTS_REPLICATION_NPY"], cfg["SVM_ABS_SUM_REPLICATION_NPY"])

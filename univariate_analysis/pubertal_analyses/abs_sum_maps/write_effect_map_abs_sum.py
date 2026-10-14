@@ -1,5 +1,8 @@
 import pandas as pd
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def create_abs_sum_mat(results_folder, sample_type, save_filename):
     all_z_vectors = pd.DataFrame()
@@ -21,13 +24,13 @@ def create_abs_sum_mat(results_folder, sample_type, save_filename):
 
 
 if __name__ == "__main__":
-    tests = os.listdir("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_analyses_2/discovery")
+    tests = os.listdir(f"{cfg['PUBERTY_RESULTS_DIR']}/discovery")
     for test in tests:
-        disc_results_folder = f"/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_analyses_2/discovery/{test}"
-        disc_save_filename = f"/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/abs_sum_maps/matrices/discovery/{test}_z_mat.csv"
+        disc_results_folder = f"{cfg['PUBERTY_RESULTS_DIR']}/discovery/{test}"
+        disc_save_filename = f"{cfg['PUBERTY_ABS_SUM_DIR']}/matrices/discovery/{test}_z_mat.csv"
         
-        rep_results_folder = f"/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_analyses_2/replication/{test}"
-        rep_save_filename = f"/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/abs_sum_maps/matrices/replication/{test}_z_mat.csv"
+        rep_results_folder = f"{cfg['PUBERTY_RESULTS_DIR']}/replication/{test}"
+        rep_save_filename = f"{cfg['PUBERTY_ABS_SUM_DIR']}/matrices/replication/{test}_z_mat.csv"
         create_abs_sum_mat(disc_results_folder, "discovery", disc_save_filename)
         create_abs_sum_mat(rep_results_folder, "replication", rep_save_filename)
 

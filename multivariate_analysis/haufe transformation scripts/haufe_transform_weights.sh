@@ -1,3 +1,6 @@
 #!/bin/bash
 
-python3 /cbica/projects/ash_pfn_sex_diff_abcd/dropbox/haufe_transform_weights.py
+# File paths come from CONFIG.txt in the folder you ran qsub from (the repo root)
+source "$SGE_O_WORKDIR/CONFIG.txt"
+
+python3 "$CODE_DIR/multivariate_analysis/haufe transformation scripts/haufe_transform_weights.py"

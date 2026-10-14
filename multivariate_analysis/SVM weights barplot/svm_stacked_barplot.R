@@ -8,6 +8,16 @@ library(ggpattern)
 theme_set(theme_classic(base_size = 16))
 library(RcppCNPy)
 
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
+
+# Which sample to plot: "discovery" or "replication" (Figure 3C); pass as the first argument or edit here
+args <- commandArgs(trailingOnly = TRUE)
+sample_set <- if (length(args) >= 1) args[1] else "replication"
+
 #read in brain data
 #data_brain1 <- npyLoad("/Users/ashfrana/Desktop/code/ABCD GAMs replication/w_brain_sex_matrix_one_run.npy")
 #data_brain1 <- npyLoad("/Users/ashfrana/Desktop/code/ABCD GAMs replication/w_brain_sex_matrix_one_run_replication.npy")
@@ -19,7 +29,7 @@ library(RcppCNPy)
 #data_brain1 <- npyLoad("/Users/ashfrana/Desktop/code/ABCD GAMs replication/svm_072324_run/discovery_haufe_transformed_100_runs_weights_072324.npy")
 #data_brain1 <- npyLoad("/Users/ashfrana/Desktop/code/ABCD GAMs replication/svm_072324_run/replication_haufe_transformed_100_runs_weights_072324.npy")
 #data_brain1 <- npyLoad("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/discovery_haufe_transformed_100_runs_weights_check.npy")
-data_brain1 <- npyLoad("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/replication_haufe_transformed_100_runs_weights_check.npy")
+data_brain1 <- npyLoad(cfg[[paste0("HAUFE_WEIGHTS_", toupper(sample_set), "_NPY")]])
 data_brain <-data_brain1
 
 #function to sum negative weights
@@ -61,6 +71,9 @@ netColor <- c("#E76178", "#7499C2", "#F5BA2E", "#7499C2", "#00A131",
               "#7499C2", "#E76178", "#7499C2", "#00A131", "#F5BA2E", 
               "#4E31A8", "#F5BA2E")
 
+netName <- c("SM", "VS", "SM", "SM", "VS", "SM", "FP", "AU", "DM", "FP", "VA", 
+             "DA", "DA", "DM", "DM", "VA", "FP")
+
 netColorDf <- cbind(network, netColor, netName)
 
 
@@ -81,13 +94,9 @@ sums_all_col_rank <- sums_all_col_rank %>%
   arrange (netrank)
 colormap=sums_all_col_rank %>% select(network,netColorF)%>%unique()
 
-
-netName <- c("SM", "VS", "SM", "SM", "VS", "SM", "FP", "AU", "DM", "FP", "VA", 
-             "DA", "DA", "DM", "DM", "VA", "FP")
-
 colormap <- cbind(colormap, netName)
 
-write.csv(sums_all_col_rank, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/svm_replication_network_sums_table_check.csv")
+write.csv(sums_all_col_rank, file.path(cfg$FIGURE_S8_DIR, paste0("svm_", sample_set, "_network_sums_table_check.csv")))
 
 
 barplot <- ggplot(sums_all_col_rank, aes(x = network, y = weights, fill=network, alpha=factor(sex)))+
@@ -102,4 +111,4 @@ barplot <- ggplot(sums_all_col_rank, aes(x = network, y = weights, fill=network,
                    pattern_key_scale_factor = 0.5) + scale_pattern_alpha_discrete(range = c(0,0.5), labels =c("Female", "Male")) + theme(axis.text.x = element_text(size= 12), axis.text.y = element_text(size= 12), axis.title = element_text(size=18)) + theme(legend.position = "none")
 
 barplot
-ggsave("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/svm_replication_barplot_check.png", plot=barplot, width=4.8, height=3.5, dpi=300)
+ggsave(file.path(cfg$SVM_OUTPUT_DIR, paste0("svm_", sample_set, "_barplot_check.png")), plot=barplot, width=4.8, height=3.5, dpi=300)

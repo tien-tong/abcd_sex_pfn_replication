@@ -1,7 +1,11 @@
 import pandas as pd
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def create_behavior_df(original_df, df_to_merge, indepdent_vars, sexes, set):
-    f = open("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_data_local/puberty_dataframe_shapes.txt", "a+")
+    f = open(f"{cfg['PUBERTY_DATA_DIR']}/puberty_dataframe_shapes.txt", "a+")
     df_to_merge = df_to_merge[df_to_merge['eventname'] == "baseline_year_1_arm_1"]
     df_to_merge_ids = [sub_id[5:] for sub_id in df_to_merge['src_subject_id'].values]
     df_to_merge['subjectkey'] = df_to_merge_ids
@@ -34,18 +38,18 @@ def create_behavior_df(original_df, df_to_merge, indepdent_vars, sexes, set):
     filename = f"{set}_behavior_{'_'.join(indepdent_vars)}_{'_'.join(sexes)}.csv"
     f.write(f"File: {filename}\n")
     f.write(f"Dataframe shape: {behavior_df_final.shape}\n\n")
-    behavior_df_filename = f"/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_data_local/{set}/{filename}"
+    behavior_df_filename = f"{cfg['PUBERTY_DATA_DIR']}/{set}/{filename}"
     behavior_df_final.to_csv(behavior_df_filename, index=False)
     f.close()
 
 
 if __name__ == "__main__":
-    discovery_set = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/discovery_sample_siblings_removed_071524.csv")
-    replication_set = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/replication_sample_siblings_removed_071524.csv")
+    discovery_set = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
+    replication_set = pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"])
 
-    hormone_data = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_data_local/ph_y_sal_horm.csv")
-    pds_data = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_data_local/ph_p_pds.csv")
-    dhea_data = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/pubertal_analyses/puberty_data_local/abcd_hsss01.txt", sep='\t')
+    hormone_data = pd.read_csv(cfg["HORMONE_CSV"])
+    pds_data = pd.read_csv(cfg["PDS_CSV"])
+    dhea_data = pd.read_csv(cfg["DHEA_TXT"], sep='\t')
     dhea_data = dhea_data.drop([0], axis=0)
     
     # Make datasets for  discovery and replication sets separately while controlling for 1) pubertal stage, 2) pubertal timing, and 3) testosterone

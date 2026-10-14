@@ -6,6 +6,8 @@ import numpy as np
 import os
 import sys
 import random
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 
 # Note: under assumption that files being passed in are .gii files!
@@ -42,7 +44,7 @@ if __name__ == "__main__":
     
     # Save command run into commands_run file
     command_run = f"python3 spin_test.py '{map_1_filename}' '{map_2_filename}' '{map_atlas}' '{test_name}' '{save_folder}' \n" 
-    f = open("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/commands_run.txt", "a+")
+    f = open(cfg["COMMANDS_LOG"], "a+")
     f.write(command_run)
     f.close()
 
