@@ -1,6 +1,7 @@
 #!/bin/bash
 # Download the medial-wall masks and the fsLR-32k -> fsaverage5 resampling files from
-# github.com/PennLINC/S-A_ArchetypalAxis into the paths CONFIG.txt expects.
+# github.com/PennLINC/S-A_ArchetypalAxis, and the two AHBA Schaefer-1000 files from
+# figshare.com/articles/dataset/AHBAdata/6852911, into the paths CONFIG.txt expects.
 # Usage (from the repo root): bash download_reference_files.sh
 set -e
 source "$(dirname "$0")/CONFIG.txt"
@@ -24,4 +25,16 @@ for f in FSLRVertex/fs_LR-deformed_to-fsaverage.L.sphere.32k_fs_LR.surf.gii \
     curl -fL "$REPO/$f" -o "$FSAVERAGE5_RESAMPLE_DIR/$(basename "$f")"
 done
 
-echo "Downloaded to $(dirname "$MEDIAL_WALL_MASK_LH") and $FSAVERAGE5_RESAMPLE_DIR"
+# AHBA Schaefer-1000 annotation and ROI x gene matrix (Part 5). Each is one file inside a
+# ~2 GB zip, so the zips go to a temporary folder that is deleted afterwards.
+mkdir -p "$(dirname "$AHBA_SCHAEFER1000_ANNOT")" "$(dirname "$AHBA_ROI_GENE_MAT")"
+tmp=$(mktemp -d "$REFERENCE_DIR/ahba_tmp.XXXXXX")
+trap 'rm -rf "$tmp"' EXIT
+curl -fL https://ndownloader.figshare.com/files/23084357 -o "$tmp/AHBAdata.zip"
+unzip -jo "$tmp/AHBAdata.zip" data/genes/parcellations/lh.Schaefer1000_7net.annot -d "$tmp"
+mv "$tmp/lh.Schaefer1000_7net.annot" "$AHBA_SCHAEFER1000_ANNOT"
+curl -fL https://ndownloader.figshare.com/files/23084366 -o "$tmp/AHBAprocessed.zip"
+unzip -jo "$tmp/AHBAprocessed.zip" ROIxGene_Schaefer1000_INT.mat -d "$tmp"
+mv "$tmp/ROIxGene_Schaefer1000_INT.mat" "$AHBA_ROI_GENE_MAT"
+
+echo "Downloaded to $(dirname "$MEDIAL_WALL_MASK_LH"), $FSAVERAGE5_RESAMPLE_DIR and $(dirname "$AHBA_ROI_GENE_MAT")"

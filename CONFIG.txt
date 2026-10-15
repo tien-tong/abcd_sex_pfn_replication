@@ -70,7 +70,7 @@ PNC_GAMS_ABS_SUM_RH_CSV="${PNC_SPINTEST_DIR}/GamSexAbssum_rh.csv"
 MEDIAL_WALL_MASK_LH="${REFERENCE_DIR}/medialwall.mask.leftcortex.csv"
 MEDIAL_WALL_MASK_RH="${REFERENCE_DIR}/medialwall.mask.rightcortex.csv"
 FSAVERAGE5_RESAMPLE_DIR="${REFERENCE_DIR}/fsaverage5_resample"
-# AHBA Schaefer-1000 files (Part 5); no known public or CUBIC source yet, see ADDING_ACE.md
+# AHBA Schaefer-1000 files (Part 5); downloaded from figshare by download_reference_files.sh
 AHBA_SCHAEFER1000_ANNOT="${REFERENCE_DIR}/lh.Schaefer1000_7net.annot"
 AHBA_ROI_GENE_MAT="${REFERENCE_DIR}/ROIxGene_Schaefer1000_INT.mat"
 

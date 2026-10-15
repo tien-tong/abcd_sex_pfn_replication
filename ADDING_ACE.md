@@ -11,7 +11,7 @@ The project folder holds the git repo (`code/`) and three data folders next to i
 ├── code/                          # the git repo (CODE_DIR)
 │   ├── CONFIG.txt                     # every file path
 │   ├── pfn_config.py / pfn_config.R   # read CONFIG.txt for Python / R scripts
-│   ├── download_reference_files.sh    # medial-wall masks + fsaverage5 resampling files
+│   ├── download_reference_files.sh    # medial-wall masks, fsaverage5 resampling files, AHBA files
 │   ├── setup_env.sh                   # creates the ace conda environment
 │   ├── README.md                      # fork summary + link to Ashley's site
 │   ├── ADDING_ACE.md                  # this guide
@@ -71,7 +71,7 @@ cp "$ASH/dropbox/spintest/GamSexAbssum_lh.csv" "$ASH/dropbox/spintest/GamSexAbss
 mkdir -p "$RESULTS_DIR"
 cp -r "$ASH/results/converted_matrices" "$RESULTS_DIR/"
 
-# 4. Reference files from GitHub -> reference_files/
+# 4. Reference files from GitHub and figshare (~4 GB download) -> reference_files/
 bash download_reference_files.sh
 ```
 
@@ -116,7 +116,7 @@ Box CLI has to be installed and authenticated through a Box app before step 2. T
 Then:
 
 1. Put the ACE csv in `inputs/` and set `ACE_CSV` in CONFIG.txt to it. It needs the columns `src_subject_id` (e.g. `NDAR_INV<id>`), `eventname` and `binarizedACE` (0/1). The GAM scripts keep its `baseline_year_1_arm_1` rows and match them to the samples' `subjectkey` (`INV<id>`) with the prefixes stripped; subjects without a baseline ACE value are left out of the models.
-2. Put the two AHBA files in `reference_files/` (see below).
+2. If `reference_files/` from Box doesn't have the two AHBA files yet (it was uploaded before `download_reference_files.sh` fetched them), run `bash download_reference_files.sh` once more.
 
 The commands below are written to run from the repo root (`code/`), after `source CONFIG.txt`, but the scripts themselves don't depend on the current folder: the SLURM job scripts find `CONFIG.txt` from their own location (so `sbatch` works from any folder, including the jobs that `submit_scripts.py` submits), and the Python and R scripts find it the same way; in RStudio, `setwd()` into the repo first.
 
@@ -159,12 +159,8 @@ bash setup_env.sh
 
 **Reference files in `reference_files/`:**
 
-- Medial-wall masks and the 8 fsLR→fsaverage5 resampling files from [S-A_ArchetypalAxis](https://github.com/PennLINC/S-A_ArchetypalAxis): downloaded by `download_reference_files.sh` (setup step 3).
-- AHBA `lh.Schaefer1000_7net.annot` and `ROIxGene_Schaefer1000_INT.mat` (Part 5 only). These are the one input with no known CUBIC or public source: Ashley read them from her laptop (`/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/data/genes/parcellations/` and `.../genetics/AHBAprocessed/`), and the figshare dataset the website names (6852911) lists no Schaefer1000 files. Search CUBIC, or ask Ashley:
-
-  ```bash
-  find /cbica/projects/ash_pfn_sex_diff_abcd /cbica/projects/abcdpfnsexdiff \( -name 'lh.Schaefer1000_7net.annot' -o -name 'ROIxGene_Schaefer1000_INT.mat' \) 2>/dev/null
-  ```
+- Medial-wall masks and the 8 fsLR→fsaverage5 resampling files from [S-A_ArchetypalAxis](https://github.com/PennLINC/S-A_ArchetypalAxis): downloaded by `download_reference_files.sh` (setup step A4).
+- AHBA `lh.Schaefer1000_7net.annot` and `ROIxGene_Schaefer1000_INT.mat` (Part 5 only), from the figshare dataset the website names ([6852911](https://figshare.com/articles/dataset/AHBAdata/6852911)): downloaded by `download_reference_files.sh`, which takes `data/genes/parcellations/lh.Schaefer1000_7net.annot` out of `AHBAdata.zip` and `ROIxGene_Schaefer1000_INT.mat` out of `AHBAprocessed.zip` and then deletes the zips.
 
 ## Run order
 

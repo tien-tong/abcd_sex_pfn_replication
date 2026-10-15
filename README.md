@@ -8,4 +8,4 @@ From Part 3 on, this version differs from those instructions (inputs, setup and 
 - Jobs run on SLURM and can be submitted from any folder: each job script finds `CONFIG.txt` from its own location. Scripts run from the repo; nothing is copied into `dropbox/`.
 - The univariate GAMs model `oSex * binarizedACE` and save sex, ACE and sex × ACE results. `binarizedACE` (0/1) is read from the ACE csv set by `ACE_CSV` in `CONFIG.txt` (baseline rows, matched on subject ID).
 - `bash setup_env.sh` creates the `ace` conda environment (Python libraries, `wb_command`, R and R packages); the SLURM job scripts activate it.
-- `bash download_reference_files.sh` downloads the medial-wall masks and the fsaverage5 resampling files into `reference_files/`.
+- `bash download_reference_files.sh` downloads the medial-wall masks, the fsaverage5 resampling files and the two AHBA files into `reference_files/`.
