@@ -115,7 +115,7 @@ Box CLI has to be installed and authenticated through a Box app before step 2. T
 
 Then:
 
-1. Put the ACE csv in `inputs/` and set `ACE_CSV` in CONFIG.txt to it. It needs the columns `subject_id` (`sub-<id>`), `eventname` and `binarizedACE` (0/1). The GAM scripts keep its `baseline_year_1_arm_1` rows and match them to the samples' `subjectkey` (`INV<id>`) with the prefixes stripped; subjects without a baseline ACE value are left out of the models.
+1. Put the ACE csv in `inputs/` and set `ACE_CSV` in CONFIG.txt to it. It needs the columns `src_subject_id` (e.g. `NDAR_INV<id>`), `eventname` and `binarizedACE` (0/1). The GAM scripts keep its `baseline_year_1_arm_1` rows and match them to the samples' `subjectkey` (`INV<id>`) with the prefixes stripped; subjects without a baseline ACE value are left out of the models.
 2. Put the two AHBA files in `reference_files/` (see below).
 
 The commands below are written to run from the repo root (`code/`), after `source CONFIG.txt`, but the scripts themselves don't depend on the current folder: the SLURM job scripts find `CONFIG.txt` from their own location (so `sbatch` works from any folder, including the jobs that `submit_scripts.py` submits), and the Python and R scripts find it the same way; in RStudio, `setwd()` into the repo first.
@@ -155,7 +155,7 @@ bash setup_env.sh
 | Hormone and PDS data | `/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/hormone_pds_data/` | `HORMONE_PDS_DIR` |
 | Site IDs | `/cbica/projects/abcdfnets/scripts/FilesForAdam/DEAP-siteID.rds` | `DEAP_SITE_RDS` |
 | PNC maps | `/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/spintest/GamSexAbssum_{lh,rh}.csv` | `PNC_SPINTEST_DIR` |
-| ACE data (`subject_id`, `eventname`, `binarizedACE`) | the ACE csv, copied in by hand | `ACE_CSV` |
+| ACE data (`src_subject_id`, `eventname`, `binarizedACE`) | the ACE csv, copied in by hand | `ACE_CSV` |
 
 **Reference files in `reference_files/`:**
 

@@ -41,7 +41,7 @@ SUBJECT_DATA_DIR="${INPUT_DIR}/subject_data"
 # Discovery / replication samples with siblings removed (Part 1, step 2)
 DISCOVERY_SAMPLE_CSV="${INPUT_DIR}/discovery_sample_siblings_removed_071524.csv"
 REPLICATION_SAMPLE_CSV="${INPUT_DIR}/replication_sample_siblings_removed_071524.csv"
-# ACE data for the Part 3 GAMs: columns subject_id (sub-<id>), eventname and binarizedACE (0/1); set to the ACE csv
+# ACE data for the Part 3 GAMs: columns src_subject_id (e.g. NDAR_INV<id>), eventname and binarizedACE (0/1); set to the ACE csv
 ACE_CSV="${INPUT_DIR}/ace.csv"
 # CIFTI header template (fsLR-32k, 59,412 cortical grayordinates); only its header is used
 CIFTI_TEMPLATE_DSCALAR="${INPUT_DIR}/unthresholded_abs_sum_replication_071624.dscalar.nii"

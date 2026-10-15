@@ -24,14 +24,14 @@ create_behavior_df <- function(filepath, group){
   behavior_new$abcd_site <- as.factor(behavior_df$abcd_site)
   behavior_new$rel_family_id <- as.factor(behavior_df$rel_family_id)
   # binarizedACE (0 = no, 1 = yes) from the ACE csv: baseline rows only, matched on subject ID.
-  # IDs are compared without their prefixes (sample: INV<id>; ACE csv: sub-<id>)
+  # IDs are compared without their prefixes (sample subjectkey: INV<id>; ACE csv src_subject_id: e.g. NDAR_INV<id>)
   strip_id <- function(id) sub("^(sub-)?(NDAR_?)?(INV)?", "", id)
   ace_df <- read.csv(cfg$ACE_CSV)
-  missing_cols <- setdiff(c("subject_id", "eventname", "binarizedACE"), names(ace_df))
+  missing_cols <- setdiff(c("src_subject_id", "eventname", "binarizedACE"), names(ace_df))
   if (length(missing_cols)) stop("Missing column(s) ", paste(missing_cols, collapse = ", "), " in ", cfg$ACE_CSV)
   ace_df <- ace_df[which(ace_df$eventname == "baseline_year_1_arm_1"), ]
-  if (anyDuplicated(strip_id(ace_df$subject_id))) stop("More than one baseline row per subject in ", cfg$ACE_CSV)
-  behavior_new$binarizedACE <- as.numeric(ace_df[["binarizedACE"]][match(strip_id(behavior_df$subjectkey), strip_id(ace_df$subject_id))])
+  if (anyDuplicated(strip_id(ace_df$src_subject_id))) stop("More than one baseline row per subject in ", cfg$ACE_CSV)
+  behavior_new$binarizedACE <- as.numeric(ace_df[["binarizedACE"]][match(strip_id(behavior_df$subjectkey), strip_id(ace_df$src_subject_id))])
   if (!all(behavior_new$binarizedACE %in% c(0, 1, NA))) stop("binarizedACE must be 0/1 in ", cfg$ACE_CSV)
   print(paste0("binarizedACE found for ", sum(!is.na(behavior_new$binarizedACE)), " of ", nrow(behavior_new), " subjects"))
   return (behavior_new)
