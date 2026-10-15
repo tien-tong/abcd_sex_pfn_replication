@@ -9,37 +9,39 @@
 #   R scripts         : cfg$KEY                                       (pfn_config.R)
 # Python/R scripts find this file at the repo root on their own.
 #
-# Layout: only code is tracked by git. The data folders sit in the clone but are
-# not tracked (.gitignore):
-#   CODE_DIR/inputs/            copied from CUBIC
-#   CODE_DIR/reference_files/   downloaded reference files
-#   CODE_DIR/results/           everything the pipeline writes
-# The setup script in DATA_INPUTS.md creates them.
+# Layout: the project folder holds the git repo (code/) and three data folders that
+# sit outside the repo, so git never tracks them:
+#   PROJECT_DIR/code/              this repo (CODE_DIR)
+#   PROJECT_DIR/inputs/            copied from CUBIC
+#   PROJECT_DIR/reference_files/   downloaded reference files
+#   PROJECT_DIR/results/           everything the pipeline writes
+# The setup script in ADDING_ACE.md creates them.
 # =============================================================================
 
 
-# ---- 1. EDIT THESE for your machine -----------------------------------------
-# Where this repo is cloned (used by the SLURM job scripts to find the scripts)
-CODE_DIR="/cbica/home/tongt/abcd_sex_pfn"
+# ---- 1. EDIT THESE for the machine that runs the analysis ------------------
+# Project folder, and the repo clone inside it (used by the SLURM job scripts to find the scripts)
+PROJECT_DIR="/mnt/isilon/pennlinc/tien/abcd_sex_pfn"
+CODE_DIR="${PROJECT_DIR}/code"
 # Conda environment made by setup_env.sh; every SLURM job script activates it
 CONDA_BASE="${HOME}/miniforge3"
 CONDA_ENV="ace"
 # Connectome Workbench executable (installed into the conda environment by setup_env.sh)
 WB_COMMAND="${CONDA_BASE}/envs/${CONDA_ENV}/bin/wb_command"
-# Data folders (not tracked by git). Results are large: the converted matrices alone are ~100 GB
-INPUT_DIR="${CODE_DIR}/inputs"
-REFERENCE_DIR="${CODE_DIR}/reference_files"
-RESULTS_DIR="${CODE_DIR}/results"
+# Data folders, next to code/ (outside the repo). Results are large: the converted matrices alone are ~100 GB
+INPUT_DIR="${PROJECT_DIR}/inputs"
+REFERENCE_DIR="${PROJECT_DIR}/reference_files"
+RESULTS_DIR="${PROJECT_DIR}/results"
 
 
-# ---- 2. Inputs copied from CUBIC into INPUT_DIR (setup script in DATA_INPUTS.md) ----
+# ---- 2. Inputs copied from CUBIC into INPUT_DIR (setup script in ADDING_ACE.md) ----
 CONTAINER_SIF="${INPUT_DIR}/sex_differences_replication_0.0.3.sif"
 # Per-subject PFN loadings: sub-NDAR<id>/IndividualParcel_Final_sbj1_comp17_alphaS21_1_alphaL300_vxInfo1_ard0_eta0/final_UV.mat
 SUBJECT_DATA_DIR="${INPUT_DIR}/subject_data"
 # Discovery / replication samples with siblings removed (Part 1, step 2)
 DISCOVERY_SAMPLE_CSV="${INPUT_DIR}/discovery_sample_siblings_removed_071524.csv"
 REPLICATION_SAMPLE_CSV="${INPUT_DIR}/replication_sample_siblings_removed_071524.csv"
-# ACE data for the Part 3 GAMs: columns subject_id (sub-<id>), eventname and binarizedACE (0/1); set to your file
+# ACE data for the Part 3 GAMs: columns subject_id (sub-<id>), eventname and binarizedACE (0/1); set to the ACE csv
 ACE_CSV="${INPUT_DIR}/ace.csv"
 # CIFTI header template (fsLR-32k, 59,412 cortical grayordinates); only its header is used
 CIFTI_TEMPLATE_DSCALAR="${INPUT_DIR}/unthresholded_abs_sum_replication_071624.dscalar.nii"
@@ -68,7 +70,7 @@ PNC_GAMS_ABS_SUM_RH_CSV="${PNC_SPINTEST_DIR}/GamSexAbssum_rh.csv"
 MEDIAL_WALL_MASK_LH="${REFERENCE_DIR}/medialwall.mask.leftcortex.csv"
 MEDIAL_WALL_MASK_RH="${REFERENCE_DIR}/medialwall.mask.rightcortex.csv"
 FSAVERAGE5_RESAMPLE_DIR="${REFERENCE_DIR}/fsaverage5_resample"
-# AHBA Schaefer-1000 files (Part 5); no known public or CUBIC source yet, see DATA_INPUTS.md
+# AHBA Schaefer-1000 files (Part 5); no known public or CUBIC source yet, see ADDING_ACE.md
 AHBA_SCHAEFER1000_ANNOT="${REFERENCE_DIR}/lh.Schaefer1000_7net.annot"
 AHBA_ROI_GENE_MAT="${REFERENCE_DIR}/ROIxGene_Schaefer1000_INT.mat"
 

@@ -1,12 +1,4 @@
-# Local run guide
-/DATA_INPUTS.md
-
-# Data folders (see CONFIG.txt)
-/inputs/
-/reference_files/
-/results/
-
-# Stray data files anywhere else (scripts are always tracked)
+# Data lives outside the repo (see CONFIG.txt); these keep stray data files out of git (scripts are always tracked)
 *.csv
 *.png
 *.gii
