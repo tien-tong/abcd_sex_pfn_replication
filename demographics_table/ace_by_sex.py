@@ -1,8 +1,8 @@
 """ACE by sex in the full sample (discovery + replication), for the grant report.
 
 Saves to ACE_BY_SEX_DIR:
-- aces_proxy_histogram_by_sex.png/.pdf: histogram of aces_proxy, males and females overlaid
-- ace_subtypes_violin_by_sex.png/.pdf: violin plot of each ACE subtype by sex, * where p < .05
+- aces_proxy_histogram_by_sex.png/.pdf: histogram of aces_proxy, males and females side by side (% of each sex)
+- ace_subtypes_mean_se_by_sex.png/.pdf: mean +/- SE of each ACE subtype by sex, * where p < .05
 - ace_subtypes_ttest_by_sex.csv: t-test of each ACE subtype by sex (Welch's, the default of R's t.test),
   no correction for multiple comparisons; t > 0 means a higher mean in females
 
@@ -11,6 +11,7 @@ Usage: python3 demographics_table/ace_by_sex.py
 """
 import os
 import sys
+import textwrap
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -21,8 +22,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 from ace_data import load_baseline_ace, strip_id  # baseline rows of ACE_CSV, as in the GAM and SVM scripts
 
-SUBTYPES = ["abuse_phy", "abuse_sex", "abuse_emo", "neglect_phy", "neglect_emo",
-            "divorce", "violence", "mental", "incar", "sud"]
+# ACE subtype columns and their full names, from the comments in the ACEs proxy scoring script
+# (ELAfromABCD_ACEsproxy_revised.Rmd; it gives no full name for abuse_emo)
+SUBTYPE_NAMES = {"abuse_phy": "Physical abuse", "abuse_sex": "Sexual abuse", "abuse_emo": "Emotional abuse",
+                 "neglect_phy": "Physical neglect", "neglect_emo": "Emotional neglect",
+                 "divorce": "Parents separated or divorced", "violence": "Violence in home",
+                 "mental": "Family mental illness", "incar": "Incarcerated relative", "sud": "Family substance use"}
+SUBTYPES = list(SUBTYPE_NAMES)
 SEXES = [("M", "Male", "tab:blue"), ("F", "Female", "hotpink")]  # (code in the sample csv, label, color)
 ALPHA = 0.05
 
@@ -65,47 +71,55 @@ def save_figure(fig, save_path_no_ext):
 
 
 def plot_aces_proxy_histogram(sample, save_path_no_ext):
+    # Males and females side by side in each bin, as the % of that sex, so neither group hides the other
     values = sample["aces_proxy"].dropna()
-    if np.allclose(values, np.round(values)):  # whole-number scores: one bar per value
+    whole_numbers = np.allclose(values, np.round(values))
+    if whole_numbers:  # one bin per score
         bins = np.arange(values.min() - 0.5, values.max() + 1.5)
     else:
         bins = np.histogram_bin_edges(values, bins="auto")
+    centers = (bins[:-1] + bins[1:]) / 2
+    width = (bins[1] - bins[0]) * 0.4
 
-    fig, ax = plt.subplots(figsize=(5, 3.5))
-    for code, label, color in SEXES:
+    fig, ax = plt.subplots(figsize=(6, 3.5))
+    for offset, (code, label, color) in zip([-width / 2, width / 2], SEXES):
         sex_values = sample.loc[sample["sex"] == code, "aces_proxy"].dropna()
-        ax.hist(sex_values, bins=bins, color=color, alpha=0.5, label=f"{label} (n = {len(sex_values)})")
+        counts, _ = np.histogram(sex_values, bins=bins)
+        ax.bar(centers + offset, 100 * counts / len(sex_values), width=width, color=color,
+               label=f"{label} (n = {len(sex_values)})")
+    if whole_numbers:
+        ax.set_xticks(centers, [f"{c:g}" for c in centers])
     ax.set_xlabel("aces_proxy")
-    ax.set_ylabel("Count")
+    ax.set_ylabel("% of males / % of females")
     ax.legend(frameon=False)
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     save_figure(fig, save_path_no_ext)
 
 
-def plot_subtype_violins(sample, ttests, save_path_no_ext):
+def plot_subtype_means(sample, ttests, save_path_no_ext):
+    # Mean +/- SE of each subtype by sex (for a 0/1 subtype, the mean is the proportion with it)
     significant = ttests.set_index("subtype")["significant"]
     fig, axes = plt.subplots(2, 5, figsize=(15, 6))
     for ax, subtype in zip(axes.flat, SUBTYPES):
         data = [sample.loc[sample["sex"] == code, subtype].dropna() for code, _, _ in SEXES]
-        parts = ax.violinplot(data, positions=[1, 2], showmeans=True, showextrema=False)
-        for body, (_, _, color) in zip(parts["bodies"], SEXES):
-            body.set_facecolor(color)
-            body.set_edgecolor(color)
-            body.set_alpha(0.6)
-        parts["cmeans"].set_color("black")
+        means = [d.mean() for d in data]
+        ses = [d.sem() for d in data]  # SD / sqrt(n)
+        ax.bar([1, 2], means, yerr=ses, width=0.6, capsize=6, color=[color for _, _, color in SEXES], ecolor="black")
         ax.set_xticks([1, 2], [label for _, label, _ in SEXES])
-        ax.set_title(subtype)
+        ax.set_xlim(0.4, 2.6)
+        ax.set_title(textwrap.fill(SUBTYPE_NAMES[subtype], 22))  # long names on two lines
         ax.spines[["top", "right"]].set_visible(False)
 
         if significant[subtype]:
-            # bracket between the two violins with a * above it
-            low = min(d.min() for d in data)
-            high = max(d.max() for d in data)
-            step = (high - low or 1) * 0.08
+            # bracket between the two bars with a * above it
+            high = max(m + se for m, se in zip(means, ses))
+            step = high * 0.08 if high > 0 else 0.05
             ax.plot([1, 1, 2, 2], [high + step, high + 1.5 * step, high + 1.5 * step, high + step], color="black", linewidth=1)
             ax.text(1.5, high + 1.6 * step, "*", ha="center", va="bottom", fontsize=16)
             ax.set_ylim(top=high + 3 * step)
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Mean ± SE")
     fig.tight_layout()
     save_figure(fig, save_path_no_ext)
 
@@ -121,5 +135,5 @@ if __name__ == "__main__":
     print(ttests.to_string(index=False, float_format=lambda x: f"{x:.4g}"))
 
     plot_aces_proxy_histogram(sample, os.path.join(out_dir, "aces_proxy_histogram_by_sex"))
-    plot_subtype_violins(sample, ttests, os.path.join(out_dir, "ace_subtypes_violin_by_sex"))
+    plot_subtype_means(sample, ttests, os.path.join(out_dir, "ace_subtypes_mean_se_by_sex"))
     print(f"\nSaved to {out_dir}")

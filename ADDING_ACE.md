@@ -310,7 +310,7 @@ Open `demographics_table/demographics.ipynb` from inside `demographics_table/` a
 ACE by sex in the full sample (discovery + replication, baseline ACE), for the grant report:
 
 ```bash
-python3 "$CODE_DIR/demographics_table/ace_by_sex.py"   # ACE_BY_SEX_DIR: aces_proxy histogram, ACE subtype violins, subtype ~ sex t-tests
+python3 "$CODE_DIR/demographics_table/ace_by_sex.py"   # ACE_BY_SEX_DIR: aces_proxy histogram, ACE subtype mean ± SE by sex, subtype ~ sex t-tests
 ```
 
-The t-tests are Welch's (the default of R's `t.test`), female vs male, with no correction for multiple comparisons; subtypes with p < .05 get a * in the violin plot. The table is printed and saved as `ace_subtypes_ttest_by_sex.csv`.
+The t-tests are Welch's (the default of R's `t.test`), female vs male, with no correction for multiple comparisons; subtypes with p < .05 get a * in the mean ± SE plot. The table is printed and saved as `ace_subtypes_ttest_by_sex.csv`.
