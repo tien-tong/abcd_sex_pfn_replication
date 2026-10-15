@@ -21,8 +21,11 @@
 # ---- 1. EDIT THESE for your machine -----------------------------------------
 # Where this repo is cloned (used by the SLURM job scripts to find the scripts)
 CODE_DIR="/cbica/home/tongt/abcd_sex_pfn"
-# Connectome Workbench executable (output of `which wb_command`)
-WB_COMMAND="/Applications/workbench/bin_macosx64/wb_command"
+# Conda environment made by setup_env.sh; every SLURM job script activates it
+CONDA_BASE="${HOME}/miniforge3"
+CONDA_ENV="ace"
+# Connectome Workbench executable (installed into the conda environment by setup_env.sh)
+WB_COMMAND="${CONDA_BASE}/envs/${CONDA_ENV}/bin/wb_command"
 # Data folders (not tracked by git). Results are large: the converted matrices alone are ~100 GB
 INPUT_DIR="${CODE_DIR}/inputs"
 REFERENCE_DIR="${CODE_DIR}/reference_files"
