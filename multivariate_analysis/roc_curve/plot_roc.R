@@ -14,11 +14,11 @@ svm_discovery_data <- read.csv(cfg$ROC_DATA_DISCOVERY_CSV)
 svm_replication_data <- read.csv(cfg$ROC_DATA_REPLICATION_CSV)
 
 
-svm_disc_roc <- roc(svm_discovery_data$sex ~ svm_discovery_data$decision_values)
-svm_rep_roc <- roc(svm_replication_data$sex ~ svm_replication_data$decision_values)
+svm_disc_roc <- roc(svm_discovery_data$binarizedACE ~ svm_discovery_data$decision_values)
+svm_rep_roc <- roc(svm_replication_data$binarizedACE ~ svm_replication_data$decision_values)
 
 
-svm_disc_rocplot <- ggplot(svm_discovery_data, aes(m = decision_values, d = sex)) + 
+svm_disc_rocplot <- ggplot(svm_discovery_data, aes(m = decision_values, d = binarizedACE)) + 
   geom_roc(n.cuts=0, labels=FALSE, size=2) + xlab("1 - Specificity") + ylab("Sensitivity") +
   scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, 0.2), labels=c(0, 0.2, 0.4, 0.6, 0.8, 1) , expand=expansion(0)) + scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1, 0.2), labels=c(0, 0.2, 0.4, 0.6, 0.8, 1), expand=expansion(0)) +
   theme(axis.text.x=element_text(size=15), axis.text.y=element_text(size=15), axis.title=element_text(size=20))
@@ -26,7 +26,7 @@ svm_disc_rocplot <- ggplot(svm_discovery_data, aes(m = decision_values, d = sex)
 ggsave(file.path(cfg$SVM_OUTPUT_DIR, "svm_discovery_roc_plot.png"), 
        svm_disc_rocplot, width=4.8, height=3.5, dpi=300)
 
-svm_rep_rocplot <- ggplot(svm_replication_data, aes(m = decision_values, d = sex)) + 
+svm_rep_rocplot <- ggplot(svm_replication_data, aes(m = decision_values, d = binarizedACE)) + 
   geom_roc(n.cuts=0, labels=FALSE, size=2) + xlab("1 - Specificity") + ylab("Sensitivity") +
   scale_y_continuous(limits=c(0, 1), breaks=seq(0, 1, 0.2), labels=c(0, 0.2, 0.4, 0.6, 0.8, 1) , expand=expansion(0)) + scale_x_continuous(limits=c(0, 1), breaks=seq(0, 1, 0.2), labels=c(0, 0.2, 0.4, 0.6, 0.8, 1), expand=expansion(0)) +
   theme(axis.text.x=element_text(size=15), axis.text.y=element_text(size=15), axis.title=element_text(size=20))

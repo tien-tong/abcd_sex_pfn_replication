@@ -41,7 +41,7 @@ SUBJECT_DATA_DIR="${INPUT_DIR}/subject_data"
 # Discovery / replication samples with siblings removed (Part 1, step 2)
 DISCOVERY_SAMPLE_CSV="${INPUT_DIR}/discovery_sample_siblings_removed_071524.csv"
 REPLICATION_SAMPLE_CSV="${INPUT_DIR}/replication_sample_siblings_removed_071524.csv"
-# ACE data for the Part 3 GAMs: columns src_subject_id (e.g. NDAR_INV<id>), eventname and binarizedACE (0/1); set to the ACE csv
+# ACE data for the GAMs (Part 3), SVM (Part 4) and ace_by_sex.py: columns src_subject_id (sub-<id>), eventname and binarizedACE (0/1); set to the ACE csv
 ACE_CSV="${INPUT_DIR}/ace.csv"
 # CIFTI header template (fsLR-32k, 59,412 cortical grayordinates); only its header is used
 CIFTI_TEMPLATE_DSCALAR="${INPUT_DIR}/unthresholded_abs_sum_replication_071624.dscalar.nii"
@@ -159,3 +159,5 @@ PUBERTY_INDIVIDUAL_NETWORK_DIR="${RESULTS_DIR}/puberty_individual_network_maps"
 
 # Part 10 - demographics table
 DEMOGRAPHICS_TABLE_CSV="${RESULTS_DIR}/demographics/ABCD_pfns_demographic_table.csv"
+# ACE by sex in the full sample (grant report): demographics_table/ace_by_sex.py
+ACE_BY_SEX_DIR="${RESULTS_DIR}/demographics/ace_by_sex_101526"

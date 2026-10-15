@@ -7,5 +7,6 @@ From Part 3 on, this version differs from those instructions (inputs, setup and 
 - All file paths come from `CONFIG.txt`; don't edit paths inside the scripts. Set `PROJECT_DIR` at the top of `CONFIG.txt`.
 - Jobs run on SLURM and can be submitted from any folder: each job script finds `CONFIG.txt` from its own location. Scripts run from the repo; nothing is copied into `dropbox/`.
 - The univariate GAMs model `oSex * binarizedACE` and save sex, ACE and sex × ACE results. `binarizedACE` (0/1) is read from the ACE csv set by `ACE_CSV` in `CONFIG.txt` (baseline rows, matched on subject ID).
+- The Part 4 SVM predicts `binarizedACE` instead of sex, with sex added to the covariates (motion, age, sex, site). It leaves out subjects without a baseline ACE value, weights the two ACE groups equally, keeps the ACE proportion the same across splits, chooses C by balanced accuracy, and reports balanced accuracy and AUC with accuracy.
 - `bash setup_env.sh` creates the `ace` conda environment (Python libraries, `wb_command`, R and R packages); the SLURM job scripts activate it.
 - `bash download_reference_files.sh` downloads the medial-wall masks, the fsaverage5 resampling files and the two AHBA files into `reference_files/`.

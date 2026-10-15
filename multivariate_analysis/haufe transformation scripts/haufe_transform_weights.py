@@ -4,12 +4,15 @@ import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
+from ace_data import add_binarized_ace  # binarizedACE from ACE_CSV (baseline rows), as in the GAM scripts
 
 def haufe_transform(features_path, weights_path, data_for_ridge_path, nonzero_indices, save_filename):
-    features = np.load(features_path)
-    targets = pd.read_csv(data_for_ridge_path)['sex']
-    # Change this so Male=-1 and female=1
-    targets = np.array([-1 if i == "M" else 1 for i in targets]) # set Male=1, female=-1
+    # Only the subjects with a baseline binarizedACE were in the SVM (the matrix rows follow the sample csv rows)
+    data_for_ridge = add_binarized_ace(pd.read_csv(data_for_ridge_path))
+    keep = data_for_ridge['binarizedACE'].notna().values
+    features = np.load(features_path)[keep]
+    # SVM outcome: binarizedACE (0 = no, 1 = yes)
+    targets = data_for_ridge['binarizedACE'].values[keep].astype(int)
     coefs_matrix = np.load(weights_path)
     coefs = coefs_matrix.flatten()
     coefs = coefs[nonzero_indices]

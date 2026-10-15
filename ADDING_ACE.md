@@ -11,6 +11,7 @@ The project folder holds the git repo (`code/`) and three data folders next to i
 ├── code/                          # the git repo (CODE_DIR)
 │   ├── CONFIG.txt                     # every file path
 │   ├── pfn_config.py / pfn_config.R   # read CONFIG.txt for Python / R scripts
+│   ├── ace_data.py                    # binarizedACE for the Part 4 SVM scripts
 │   ├── download_reference_files.sh    # medial-wall masks, fsaverage5 resampling files, AHBA files
 │   ├── setup_env.sh                   # creates the ace conda environment
 │   ├── README.md                      # fork summary + link to Ashley's site
@@ -34,7 +35,7 @@ The project folder holds the git repo (`code/`) and three data folders next to i
 │   ├── genetics/                      # Part 5: fslr_to_fsaverage5.sh + enrichment folders
 │   ├── spin_tests/                    # Part 6
 │   ├── hex_plots/, figure_s8_barplots/   # Part 7
-│   └── demographics_table/            # Part 10 notebook
+│   └── demographics_table/            # Part 10 notebook + ace_by_sex.py (ACE by sex, grant report)
 ├── inputs/                        # not in git: copied from CUBIC (INPUT_DIR)
 ├── reference_files/               # not in git: downloaded reference files (REFERENCE_DIR)
 └── results/                       # not in git: everything the pipeline writes (RESULTS_DIR)
@@ -115,7 +116,7 @@ Box CLI has to be installed and authenticated through a Box app before step 2. T
 
 Then:
 
-1. Put the ACE csv in `inputs/` and set `ACE_CSV` in CONFIG.txt to it. It needs the columns `src_subject_id` (e.g. `NDAR_INV<id>`), `eventname` and `binarizedACE` (0/1). The GAM scripts keep its `baseline_year_1_arm_1` rows and match them to the samples' `subjectkey` (`INV<id>`) with the prefixes stripped; subjects without a baseline ACE value are left out of the models.
+1. Put the ACE csv in `inputs/` and set `ACE_CSV` in CONFIG.txt to it. It needs the columns `src_subject_id` (`sub-<id>`), `eventname` and `binarizedACE` (0/1). The GAM and SVM scripts keep its `baseline_year_1_arm_1` rows and match them to the samples' `subjectkey` (`INV<id>`) with the prefixes stripped; subjects without a baseline ACE value are left out of the models.
 2. If `reference_files/` from Box doesn't have the two AHBA files yet (it was uploaded before `download_reference_files.sh` fetched them), run `bash download_reference_files.sh` once more.
 
 The commands below are written to run from the repo root (`code/`), after `source CONFIG.txt`, but the scripts themselves don't depend on the current folder: the SLURM job scripts find `CONFIG.txt` from their own location (so `sbatch` works from any folder, including the jobs that `submit_scripts.py` submits), and the Python and R scripts find it the same way; in RStudio, `setwd()` into the repo first.
@@ -193,6 +194,8 @@ python3 "$U/individual network scripts/individual_networks_to_cifti.py"
 
 ### Part 4: SVM
 
+The SVM predicts `binarizedACE` (0 = no, 1 = yes) from the PFN loadings, with motion, age, sex (M = -1, F = 1) and site regressed out of the loadings in each training set. Subjects without a baseline ACE value are left out (`ace_data.py`). The ACE groups differ in size, so the SVM weights both groups equally (`class_weight='balanced'`), the splits keep the same ACE proportion in each half, C is chosen by balanced accuracy, and the results include balanced accuracy and AUC. Positive weights and decision values point toward ACE = 1.
+
 ```bash
 M="$CODE_DIR/multivariate_analysis"
 python3 "$M/nonzero matrix creation scripts/create_nonzero_matrix.py" discovery
@@ -207,8 +210,8 @@ python3 "$M/SVM brain map plot/write_effect_map_to_cifti_svm.py" "$SVM_ABS_SUM_D
 python3 "$M/SVM brain map plot/write_effect_map_to_cifti_svm.py" "$SVM_ABS_SUM_REPLICATION_NPY" "$SVM_ABS_SUM_REPLICATION_DSCALAR"
 sbatch "$M/SVM scripts/shell (job) wrappers/svm_permutation_parallel.sh"                      # SVM_PERMUTATION_DIR/time_1..1000
 python3 "$M/SVM accuracy histogram/get_accuracies.py"
-python3 "$M/SVM accuracy histogram/get_svm_metrics.py"                                        # accuracy / sensitivity / specificity (SVM_METRICS_CSV)
-Rscript "$M/SVM accuracy histogram/svm_accuracy_histogram.R"                                  # Fig 3A inset; red line = accuracy from SVM_METRICS_CSV
+python3 "$M/SVM accuracy histogram/get_svm_metrics.py"                                        # accuracy / sensitivity / specificity / balanced accuracy / AUC (SVM_METRICS_CSV)
+Rscript "$M/SVM accuracy histogram/svm_accuracy_histogram.R"                                  # Fig 3A inset; balanced accuracy, red line = SVM_METRICS_CSV
 python3 "$M/roc_curve/create_ROC_curve.py"
 Rscript "$M/roc_curve/plot_roc.R"                                                             # Fig 3A
 ```
@@ -303,3 +306,11 @@ python3 "$P/individual_network_maps/identify_sig_networks.py"
 ### Part 10: Demographics
 
 Open `demographics_table/demographics.ipynb` from inside `demographics_table/` and run the cells in order. It writes `DEMOGRAPHICS_TABLE_CSV`.
+
+ACE by sex in the full sample (discovery + replication, baseline ACE), for the grant report:
+
+```bash
+python3 "$CODE_DIR/demographics_table/ace_by_sex.py"   # ACE_BY_SEX_DIR: aces_proxy histogram, ACE subtype violins, subtype ~ sex t-tests
+```
+
+The t-tests are Welch's (the default of R's `t.test`), female vs male, with no correction for multiple comparisons; subtypes with p < .05 get a * in the violin plot. The table is printed and saved as `ace_subtypes_ttest_by_sex.csv`.

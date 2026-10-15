@@ -41,6 +41,8 @@ sumpos <- function(x) sum(x[x>0])
 sums_pos<- as.data.frame(apply(data_brain,1,sumpos))
 
 #name columns, make row number the network label, and combine positive and negative sums into 1 df
+#the SVM predicts binarizedACE: negative weights = no ACE (0), positive weights = ACE (1).
+#They keep the labels "male"/"female" in the sex column because figure_s8_barplots/ reads them.
 colnames(sums_neg) <- "weights"
 setDT(sums_neg, keep.rownames = "network")
 sums_neg$sex <- "male"
@@ -108,7 +110,7 @@ barplot <- ggplot(sums_all_col_rank, aes(x = network, y = weights, fill=network,
                    pattern_angle = 45,
                    pattern_density = 0.05,
                    pattern_spacing = 0.03,
-                   pattern_key_scale_factor = 0.5) + scale_pattern_alpha_discrete(range = c(0,0.5), labels =c("Female", "Male")) + theme(axis.text.x = element_text(size= 12), axis.text.y = element_text(size= 12), axis.title = element_text(size=18)) + theme(legend.position = "none")
+                   pattern_key_scale_factor = 0.5) + scale_pattern_alpha_discrete(range = c(0,0.5), labels =c("ACE", "No ACE")) + theme(axis.text.x = element_text(size= 12), axis.text.y = element_text(size= 12), axis.title = element_text(size=18)) + theme(legend.position = "none")
 
 barplot
 ggsave(file.path(cfg$SVM_OUTPUT_DIR, paste0("svm_", sample_set, "_barplot_check.png")), plot=barplot, width=4.8, height=3.5, dpi=300)

@@ -24,7 +24,7 @@ create_behavior_df <- function(filepath){
   behavior_new$abcd_site <- as.factor(behavior_df$abcd_site)
   behavior_new$rel_family_id <- as.factor(behavior_df$rel_family_id)
   # binarizedACE (0 = no, 1 = yes) from the ACE csv: baseline rows only, matched on subject ID.
-  # IDs are compared without their prefixes (sample subjectkey: INV<id>; ACE csv src_subject_id: e.g. NDAR_INV<id>)
+  # IDs are compared without their prefixes (sample subjectkey: INV<id>; ACE csv src_subject_id: sub-<id>)
   strip_id <- function(id) sub("^(sub-)?(NDAR_?)?(INV)?", "", id)
   ace_df <- read.csv(cfg$ACE_CSV)
   missing_cols <- setdiff(c("src_subject_id", "eventname", "binarizedACE"), names(ace_df))
