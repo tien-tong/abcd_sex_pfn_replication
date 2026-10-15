@@ -14,6 +14,6 @@ test_name=$3
 sex=$4
 
 
-singularity run --cleanenv \
+singularity run --cleanenv --bind "$PROJECT_DIR" \
     "$CONTAINER_SIF" \
     Rscript --save "$CODE_DIR/univariate_analysis/pubertal_analyses/puberty_scripts/abcd_puberty_stage_timing_gams_sex_specific.R" $set "$behavior_csv" $test_name FALSE $sex

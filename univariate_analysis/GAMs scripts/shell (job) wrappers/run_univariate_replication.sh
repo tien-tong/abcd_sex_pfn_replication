@@ -5,6 +5,6 @@ source "$SLURM_SUBMIT_DIR/CONFIG.txt"
 # Conda environment from setup_env.sh (CONDA_BASE / CONDA_ENV in CONFIG.txt)
 source "$CONDA_BASE/bin/activate" "$CONDA_ENV"
 
-singularity run --cleanenv \
+singularity run --cleanenv --bind "$PROJECT_DIR" \
     "$CONTAINER_SIF" \
     Rscript --save "$CODE_DIR/univariate_analysis/GAMs scripts/R scripts/abcd_univariate_analysis_replication.R"

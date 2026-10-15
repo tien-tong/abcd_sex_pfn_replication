@@ -2,10 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import roc_curve, auc
-import os
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def get_auc_scores(data_for_ridge, results_folder):
     # Use the data for ridge discovery subject ids as the ordering for the ids
@@ -57,11 +53,11 @@ def get_auc_scores(data_for_ridge, results_folder):
 
 def plot_distribution(auc_scores_df):
     plt.hist(auc_scores_df['auc'].values)
-    plt.savefig(f"{cfg['SVM_OUTPUT_DIR']}/svm_auc_distribution_per_time.png")
+    plt.savefig("svm_auc_distribution_per_time.png")
     print(f"AVERAGE AUC: {np.mean(auc_scores_df['auc'].values)}")
 
 if __name__ == "__main__":
-    discovery_data_for_ridge = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
-    res_multitimes_path = cfg["SVM_RESULTS_DIR"]
+    discovery_data_for_ridge = pd.read_csv("discovery_sample_removed_siblings.csv")
+    res_multitimes_path = "res_100_times_roc_refactored"
     auc_scores_df = get_auc_scores(discovery_data_for_ridge, res_multitimes_path)
     plot_distribution(auc_scores_df)

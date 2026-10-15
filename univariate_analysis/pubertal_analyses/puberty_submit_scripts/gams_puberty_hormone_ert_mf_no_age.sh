@@ -12,4 +12,4 @@ set=$1
 behavior_csv=$2
 test_name=$3
 
-singularity run --cleanenv "$CONTAINER_SIF" Rscript --save "$CODE_DIR/univariate_analysis/pubertal_analyses/puberty_scripts/abcd_puberty_hormones.R" $set "$behavior_csv" $test_name FALSE ert TRUE
+singularity run --cleanenv --bind "$PROJECT_DIR" "$CONTAINER_SIF" Rscript --save "$CODE_DIR/univariate_analysis/pubertal_analyses/puberty_scripts/abcd_puberty_hormones.R" $set "$behavior_csv" $test_name FALSE ert TRUE
