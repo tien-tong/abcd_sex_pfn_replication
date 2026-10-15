@@ -29,7 +29,8 @@ SUBTYPE_NAMES = {"abuse_phy": "Physical abuse", "abuse_sex": "Sexual abuse", "ab
                  "divorce": "Parents separated or divorced", "violence": "Violence in home",
                  "mental": "Family mental illness", "incar": "Incarcerated relative", "sud": "Family substance use"}
 SUBTYPES = list(SUBTYPE_NAMES)
-SEXES = [("M", "Male", "tab:blue"), ("F", "Female", "hotpink")]  # (code in the sample csv, label, color)
+# (code in the sample csv, label, color); colors are the two ends of the pink-white-teal colorbar
+SEXES = [("M", "Male", "#479CA2"), ("F", "Female", "#DD5584")]
 ALPHA = 0.05
 
 
