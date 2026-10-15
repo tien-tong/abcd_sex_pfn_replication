@@ -9,14 +9,21 @@ library(hexbin)
 library(matrixStats)
 library(plotrix)
 library(scales)
+library(gifti)
+
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
 theme_set(theme_classic(base_size = 16))
 
 #brain input is from SVM run 100x
 # read in LH parc
-lh_schaefer1000 <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_L.csv")
+lh_schaefer1000 <- read.table(cfg$SCHAEFER1000_LABELS_CSV)
 lh_schaefer1000 <- lh_schaefer1000[1:10242,]
 # read in color lookup table
-lh_schaefer1000_ct <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_cttable.csv")
+lh_schaefer1000_ct <- read.table(cfg$SCHAEFER1000_CTTABLE_CSV)
 lh_schaefer1000_ct_500 <- as.data.frame(lh_schaefer1000_ct[-1,])
 colnames(lh_schaefer1000_ct_500) <- "V1"
 setDT(lh_schaefer1000_ct_500, keep.rownames = "parcNum")
@@ -25,7 +32,12 @@ setDT(lh_schaefer1000_ct_500, keep.rownames = "parcNum")
 #data_brain1 <- readMat("/cbica/projects/funcParcelSexDiff/results/PredictionAnalysis/SVM/2fold_CSelect_Cov_SubIndex/Sex_CovAgeMotion/Permutation/res_MultiTimes/AtlasLoading/WeightVisualize_Sex_SVM_2fold_CSelect_Cov_MultiTimes/w_Brain_Sex_Abs_sum.mat")
 #data_brain <-data_brain1$w.Brain.Sex.Abs.sum.lh
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_discovery_LH.fsaverage5.func.gii')
-data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_replication_LH.fsaverage5.func.gii')
+# Which map to test: gams_uncorrected_discovery, gams_uncorrected_replication, gams_fdr_discovery or gams_fdr_replication
+# (the <map_name>_LH.fsaverage5.func.gii files made by fslr_to_fsaverage5.sh); pass as the first argument or edit here
+args <- commandArgs(trailingOnly = TRUE)
+map_name <- if (length(args) >= 1) args[1] else "gams_uncorrected_replication"
+map_label <- sub("^gams_", "", map_name)
+data_brain1 <- readgii(file.path(cfg$GAMS_GII_DIR, paste0(map_name, "_LH.fsaverage5.func.gii")))
 data_brain <- data_brain1$data$normal
 
 # parcellate data
@@ -47,11 +59,11 @@ data_parc_lh_parcnum_sort <- data_parc_lh_parcnum[order(data_parc_lh_parcnum$par
 
 
 ###read in gene data
-geneinfo <- readMat("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/AHBAprocessed/ROIxGene_Schaefer1000_INT.mat")
+geneinfo <- readMat(cfg$AHBA_ROI_GENE_MAT)
 geneinfo1 <- lapply(geneinfo, unlist, use.names=FALSE)
 geneMat <- as.data.frame(geneinfo1$parcelExpression)
 geneMat1 <- subset(geneMat, select = -V1)
-gene <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/GeneSymbol.csv",header=TRUE)
+gene <- read.csv(cfg$GENE_SYMBOL_CSV,header=TRUE)
 colnames(gene) <- "V1"
 colnames(geneMat1) <- gene$V1
 geneMat2 <- cbind(lh_schaefer1000_ct_500, geneMat1)
@@ -64,7 +76,7 @@ geneMat2_sort_500 <- subset(geneMat2_sort, select=-V1)
 img_geneMatChrom_500 <- merge(data_parc_lh_parcnum_sort,geneMat2_sort_500, by="parcNum")
 
 
-rois <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_2mmCentroid_RAS.csv")
+rois <- read.csv(cfg$SCHAEFER1000_CENTROIDS_CSV)
 roislh <- rois[1:500,]
 
 img_geneMatChrom_roi_500 <- merge(roislh, img_geneMatChrom_500, by.x = "RoiLabel", by.y= "parcNum",all = FALSE)
@@ -85,4 +97,4 @@ rankedGeneList <- sapply(1:15745, function(x) cor(data_parc_lh_sort_500_comp,gen
 rankedGeneList1<- cbind(gene, rankedGeneList)
 rankedGeneList2 <- rankedGeneList1[with(rankedGeneList1, order(-rankedGeneList)),]
 rankedGeneList3 <- subset(rankedGeneList2, select = V1)
-write.csv(rankedGeneList3, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/go_enrichments/RankedGeneList_gams_replication_uncorrected_Cor_schaefer1000Net7_20240808.csv", row.names = FALSE,  quote=FALSE)
+write.csv(rankedGeneList3, file.path(cfg$GO_ENRICHMENT_DIR, paste0("RankedGeneList_", sub("^gams_(uncorrected|fdr)_(discovery|replication)$", "gams_\\2_\\1", map_name), "_Cor_schaefer1000Net7_20240808.csv")), row.names = FALSE,  quote=FALSE)

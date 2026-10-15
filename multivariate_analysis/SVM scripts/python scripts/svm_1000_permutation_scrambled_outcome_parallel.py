@@ -1,8 +1,8 @@
 from sklearn import svm
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
 import pandas as pd
 import numpy as np
 import sys
@@ -12,6 +12,9 @@ from sklearn import metrics
 import os
 from sklearn.metrics import confusion_matrix
 import random
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
+from ace_data import add_binarized_ace  # binarizedACE from ACE_CSV (baseline rows), as in the GAM scripts
 
 
 '''
@@ -23,7 +26,7 @@ def load_nonzero_mat(matrix_filename):
 
 
 '''
-Function to add the covariates motion, age, and abcd_site
+Function to add the covariates motion, age, sex, and abcd_site
 to the nonzero matrix
 '''
 # change parameters here
@@ -33,6 +36,7 @@ def add_covariates(data_for_ridge):
     all_covariates['subject_id'] = data_for_ridge['subjectkey']
     all_covariates['meanFD'] = data_for_ridge['meanFD']
     all_covariates['age ']= data_for_ridge['interview_age'].values/12
+    all_covariates['sex'] = [-1 if i == "M" else 1 for i in data_for_ridge['sex']]  # M = -1, F = 1
 
     abcd_sites = data_for_ridge['abcd_site']
     # One hot encode abcd_site and add to covariates matrix
@@ -50,8 +54,8 @@ def c_param_search(X_train, y_train, covariates, covariate_indices, random_state
     for i in C_range:
         cs.append(i)
         fold_accuracies = []
-        k_folds = KFold(n_splits=2, shuffle=True, random_state=random_state_seed) 
-        for train_indices, val_indices in k_folds.split(X_train):
+        k_folds = StratifiedKFold(n_splits=2, shuffle=True, random_state=random_state_seed) 
+        for train_indices, val_indices in k_folds.split(X_train, y_train):
             X_train_cv = X_train[train_indices]
             X_val_cv = X_train[val_indices]
             y_train_cv = y_train[train_indices]
@@ -70,14 +74,14 @@ def c_param_search(X_train, y_train, covariates, covariate_indices, random_state
             X_val_scaled = scaler.transform(X_val_nuisance_removed)
 
             print("Fitting svm....")
-            clf = svm.SVC(kernel='linear', C=i, random_state=42)
+            clf = svm.SVC(kernel='linear', C=i, class_weight='balanced', random_state=42)
             clf.fit(X_train_scaled, y_train_cv)
             y_pred = clf.predict(X_val_scaled)
-            fold_accuracies.append(accuracy_score(y_val_cv, y_pred))
+            fold_accuracies.append(balanced_accuracy_score(y_val_cv, y_pred))
 
         average_accuracies.append(np.mean(fold_accuracies))
 
-    # Identify optimal c based on auc
+    # Identify optimal c based on balanced accuracy
     best_c_ind = np.argmax(average_accuracies)
     best_c = cs[best_c_ind]
     return best_c
@@ -96,7 +100,7 @@ def train_svm(X_train, y_train, X_test, y_test, covariates, indices_train, indic
     X_test_scaled = scaler.transform(X_test_nuisance_removed)
 
     print("Fitting svm....")
-    clf = svm.SVC(kernel='linear', C=best_c, random_state=42, probability=True)
+    clf = svm.SVC(kernel='linear', C=best_c, class_weight='balanced', random_state=42, probability=True)
     clf.fit(X_train_scaled, y_train)
     results_dict['coefs'].append(list(clf.coef_[0]))
     y_pred = clf.predict(X_test_scaled)
@@ -113,7 +117,10 @@ def train_svm(X_train, y_train, X_test, y_test, covariates, indices_train, indic
 
 # data for ridge will be either discovery or replication data
 def run_2fold_svm(matrix_filename, data_for_ridge, C_range, time_idx):
-    features_nonzero_matrix = load_nonzero_mat(matrix_filename)
+    # Keep the subjects with a baseline binarizedACE (the matrix rows follow the sample csv rows)
+    keep = data_for_ridge['binarizedACE'].notna().values
+    features_nonzero_matrix = load_nonzero_mat(matrix_filename)[keep]
+    data_for_ridge = data_for_ridge[keep].reset_index(drop=True)
 
     # change function call
     covariates = add_covariates(data_for_ridge)
@@ -126,8 +133,7 @@ def run_2fold_svm(matrix_filename, data_for_ridge, C_range, time_idx):
     covariates = np.array(covariates)
 
     # Create y variable
-    sex = data_for_ridge['sex'].values
-    y = np.array([-1 if i == "M" else 1 for i in sex]) # set Male=1, female=-1
+    y = np.array(data_for_ridge['binarizedACE'], dtype=int)  # binarizedACE: 0 = no, 1 = yes
 
     # randomly shuffle the outcome variable
     random_state_seed = time_idx
@@ -136,7 +142,7 @@ def run_2fold_svm(matrix_filename, data_for_ridge, C_range, time_idx):
 
     # Split data into train and test
     indices = np.arange(len(X))
-    X_train, X_test, y_train, y_test, indices_train, indices_test = train_test_split(X, y, indices, test_size=0.5, random_state=random_state_seed)
+    X_train, X_test, y_train, y_test, indices_train, indices_test = train_test_split(X, y, indices, test_size=0.5, random_state=random_state_seed, stratify=y)
 
     # Repeat 2 fold cross validation with train and test as a fold each
     results_dict = {'coefs': [], 'decision_values': [],
@@ -178,17 +184,18 @@ def svm_wrapper(c_range_start, c_range_end, idx_time, results_folder, discovery_
     print("Saving metrics table....")
     metrics_table.to_csv(f"{results_folder}/time_{idx_time}/2foldcv_metrics_table.csv")
     print("Saving decision and predicted values....")
+    # dtype=object: the two folds differ in size when the sample size is odd
     # Save decision values for discovery set
-    np.save(f"{results_folder}/time_{idx_time}/discovery_decision_values_2_folds", np.array(decision_values_discovery))
+    np.save(f"{results_folder}/time_{idx_time}/discovery_decision_values_2_folds", np.array(decision_values_discovery, dtype=object))
 
     # Save decision values for replication set
-    np.save(f"{results_folder}/time_{idx_time}/replication_decision_values_2_folds", np.array(decision_values_replication))
+    np.save(f"{results_folder}/time_{idx_time}/replication_decision_values_2_folds", np.array(decision_values_replication, dtype=object))
 
     # Save predicted values for discovery set
-    np.save(f"{results_folder}/time_{idx_time}/discovery_predicted_values_2_folds", np.array(predicted_values_discovery))
+    np.save(f"{results_folder}/time_{idx_time}/discovery_predicted_values_2_folds", np.array(predicted_values_discovery, dtype=object))
 
     # Save predicted values for replication set
-    np.save(f"{results_folder}/time_{idx_time}/replication_predicted_values_2_folds", np.array(predicted_values_replication))
+    np.save(f"{results_folder}/time_{idx_time}/replication_predicted_values_2_folds", np.array(predicted_values_replication, dtype=object))
 
 
 
@@ -267,13 +274,13 @@ def svm_wrapper(c_range_start, c_range_end, idx_time, results_folder, discovery_
 
 if __name__ == "__main__":
     # Global variables
-    discovery_nonzero_mat_filename = '/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_discovery_siblings_removed.npy'
-    replication_nonzero_mat_filename = '/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_replication_siblings_removed.npy'
-    discovery_data_for_ridge = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/discovery_sample_siblings_removed_071524.csv')
-    replication_data_for_ridge = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/replication_sample_siblings_removed_071524.csv')
-    discovery_nonzero_indices = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_discovery_siblings_removed_nonzero_indices.csv')
-    replication_nonzero_indices = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_replication_siblings_removed_nonzero_indices.csv')
-    results_folder = "/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/permutation_1000_times_112124_check"
+    discovery_nonzero_mat_filename = cfg["NONZERO_MATRIX_DISCOVERY_NPY"]
+    replication_nonzero_mat_filename = cfg["NONZERO_MATRIX_REPLICATION_NPY"]
+    discovery_data_for_ridge = add_binarized_ace(pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"]))
+    replication_data_for_ridge = add_binarized_ace(pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"]))
+    discovery_nonzero_indices = pd.read_csv(cfg["NONZERO_INDICES_DISCOVERY_CSV"])
+    replication_nonzero_indices = pd.read_csv(cfg["NONZERO_INDICES_REPLICATION_CSV"])
+    results_folder = cfg["SVM_PERMUTATION_DIR"]
     # Get user input
     c_range_start = int(sys.argv[1])
     c_range_end = int(sys.argv[2])

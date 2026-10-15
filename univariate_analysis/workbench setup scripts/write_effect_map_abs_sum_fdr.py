@@ -1,5 +1,8 @@
 import pandas as pd
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 def create_abs_sum_mat(results_folder, sample_type, save_filename):
     all_z_vectors = pd.DataFrame()
@@ -21,10 +24,8 @@ def create_abs_sum_mat(results_folder, sample_type, save_filename):
 
 
 if __name__ == "__main__":
-    create_abs_sum_mat("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/univariate_analysis_results/discovery/gams_sex_effects_siblings_removed", "discovery",
-                        "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/univariate_analysis_results/fdr_abs_sum_matrix_discovery.csv")
-    create_abs_sum_mat("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/univariate_analysis_results/replication/gams_sex_effects_siblings_removed", "replication",
-                        "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/univariate_analysis/univariate_analysis_results/fdr_abs_sum_matrix_replication.csv")
+    create_abs_sum_mat(cfg["GAMS_DISCOVERY_DIR"], "discovery", cfg["GAMS_FDR_ABS_SUM_DISCOVERY_CSV"])
+    create_abs_sum_mat(cfg["GAMS_REPLICATION_DIR"], "replication", cfg["GAMS_FDR_ABS_SUM_REPLICATION_CSV"])
 
 
 

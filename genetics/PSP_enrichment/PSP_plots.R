@@ -9,20 +9,31 @@ library(hexbin)
 library(matrixStats)
 library(gifti)
 
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
+
 theme_set(theme_classic(base_size = 16))
 
 #brain input is from SVM run 100x
 # read in LH parc
-lh_schaefer1000 <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_L.csv")
+lh_schaefer1000 <- read.table(cfg$SCHAEFER1000_LABELS_CSV)
 lh_schaefer1000 <- lh_schaefer1000[1:10242,]
 # read in color lookup table
-lh_schaefer1000_ct <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_cttable.csv")
+lh_schaefer1000_ct <- read.table(cfg$SCHAEFER1000_CTTABLE_CSV)
 lh_schaefer1000_ct_500 <- as.data.frame(lh_schaefer1000_ct[-1,])
 colnames(lh_schaefer1000_ct_500) <- "V1"
 setDT(lh_schaefer1000_ct_500, keep.rownames = "parcNum")
 
 # Recreated data
-data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_discovery_LH.fsaverage5.func.gii')
+# Which map to test: gams_uncorrected_discovery, gams_uncorrected_replication, gams_fdr_discovery or gams_fdr_replication
+# (the <map_name>_LH.fsaverage5.func.gii files made by fslr_to_fsaverage5.sh); pass as the first argument or edit here
+args <- commandArgs(trailingOnly = TRUE)
+map_name <- if (length(args) >= 1) args[1] else "gams_uncorrected_discovery"
+map_label <- sub("^gams_", "", map_name)
+data_brain1 <- readgii(file.path(cfg$GAMS_GII_DIR, paste0(map_name, "_LH.fsaverage5.func.gii")))
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_replication_LH.fsaverage5.func.gii')
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_fdr_discovery_LH.fsaverage5.func.gii')
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_fdr_replication_LH.fsaverage5.func.gii')
@@ -48,11 +59,11 @@ data_parc_lh_parcnum_sort <- data_parc_lh_parcnum[order(data_parc_lh_parcnum$par
 
 
 ###read in gene data
-geneinfo <- readMat("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/AHBAprocessed/ROIxGene_Schaefer1000_INT.mat")
+geneinfo <- readMat(cfg$AHBA_ROI_GENE_MAT)
 geneinfo1 <- lapply(geneinfo, unlist, use.names=FALSE)
 geneMat <- as.data.frame(geneinfo1$parcelExpression)
 geneMat1 <- subset(geneMat, select = -V1)
-gene <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/GeneSymbol.csv",header=TRUE)
+gene <- read.csv(cfg$GENE_SYMBOL_CSV,header=TRUE)
 colnames(gene) <- "V1"
 colnames(geneMat1) <- gene$V1
 geneMat2 <- cbind(lh_schaefer1000_ct_500, geneMat1)
@@ -65,7 +76,7 @@ geneMat2_sort_500 <- subset(geneMat2_sort, select=-V1)
 img_geneMatChrom_500 <- merge(data_parc_lh_parcnum_sort,geneMat2_sort_500, by="parcNum")
 
 
-rois <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_2mmCentroid_RAS.csv")
+rois <- read.csv(cfg$SCHAEFER1000_CENTROIDS_CSV)
 roislh <- rois[1:500,]
 
 img_geneMatChrom_roi_500 <- merge(roislh, img_geneMatChrom_500, by.x = "RoiLabel", by.y= "parcNum",all = FALSE)
@@ -87,8 +98,8 @@ geneMatChrom_500_comp <- img_geneMatChrom_roi_500_comp[(length(othercols)+1):(le
 ###read in gene data
 
 #chech chromosome enrichement 
-cell3 <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/cellTypes/celltypes_PSP.csv")
-genebrain <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/cellTypes/brain_genes_HPA.csv", header = FALSE)
+cell3 <- read.csv(cfg$CELLTYPES_PSP_CSV)
+genebrain <- read.csv(cfg$BRAIN_GENES_HPA_CSV, header = FALSE)
 # 
 # cell2a <- cell3$gene[cell3$gene %in% genebrain$V1]
 # 
@@ -177,4 +188,4 @@ for (j in 1:length(t5$cellType)){
 
 df_enrich_pval <- merge(t5, perm.pval, by = "cellType")
 df_enrich_pval1 <- df_enrich_pval[with(df_enrich_pval, order(-t7)),]
-write.csv(df_enrich_pval1, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/PSP_enrichment/gams_uncorrected_discovery_psp_pvalues.csv")
+write.csv(df_enrich_pval1, file.path(cfg$PSP_ENRICHMENT_DIR, paste0(map_name, "_psp_pvalues.csv")))

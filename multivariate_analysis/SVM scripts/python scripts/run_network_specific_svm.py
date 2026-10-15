@@ -12,6 +12,8 @@ from sklearn import metrics
 import os
 from sklearn.metrics import confusion_matrix
 import random
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
 
 '''
 Function to load in nonzero matrix
@@ -268,11 +270,11 @@ if __name__ == "__main__":
     network_num = int(sys.argv[3])
     time_idx = int(sys.argv[4])
 
-    discovery_nonzero_mat_filename = f"/cbica/projects/ash_pfn_sex_diff_abcd/results/network_specific_matrices/discovery_network_matrix_nonzero_{network_num}.npy"
-    replication_nonzero_mat_filename = f"/cbica/projects/ash_pfn_sex_diff_abcd/results/network_specific_matrices/replication_network_matrix_nonzero_{network_num}.npy"
+    discovery_nonzero_mat_filename = f"{cfg['NETWORK_SPECIFIC_MATRICES_DIR']}/discovery_network_matrix_nonzero_{network_num}.npy"
+    replication_nonzero_mat_filename = f"{cfg['NETWORK_SPECIFIC_MATRICES_DIR']}/replication_network_matrix_nonzero_{network_num}.npy"
     
-    discovery_data_for_ridge = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/discovery_sample_siblings_removed_071524.csv')
-    replication_data_for_ridge = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/replication_sample_siblings_removed_071524.csv')
-    results_folder = "/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/network_specific_models_112124"
+    discovery_data_for_ridge = pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"])
+    replication_data_for_ridge = pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"])
+    results_folder = cfg["NETWORK_SPECIFIC_RESULTS_DIR"]
     
     svm_wrapper(discovery_nonzero_mat_filename, replication_nonzero_mat_filename, c_range_start, c_range_end, network_num, time_idx, results_folder)

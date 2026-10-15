@@ -1,15 +1,22 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
+from ace_data import add_binarized_ace  # binarizedACE from ACE_CSV (baseline rows), as in the GAM scripts
 
 def get_metrics(data_for_ridge, results_folder, set, save_filename):
+    # Only the subjects with a baseline binarizedACE were in the SVM
+    data_for_ridge = data_for_ridge[data_for_ridge['binarizedACE'].notna()]
     # Use the data for ridge discovery subject ids as the ordering for the ids
     data_for_ridge_subject_ids = data_for_ridge['subjectkey'].values
-    # also use data for ridge for sex (dont forget to transform the M/F)
-    data_for_ridge_sex = data_for_ridge['sex'].values
-    data_for_ridge_sex = [-1 if i == "M" else 1 for i in data_for_ridge_sex]
+    # also use data for ridge for binarizedACE (the SVM outcome: 0 = no, 1 = yes)
+    data_for_ridge_ace = data_for_ridge['binarizedACE'].astype(int).values
 
     accuracies_all_runs = []
+    balanced_accuracies_all_runs = []
 
     for i in range(1, 1001):
         time_folder_path = f"{results_folder}/time_{i}"
@@ -24,8 +31,8 @@ def get_metrics(data_for_ridge, results_folder, set, save_filename):
         subject_ids_fold2 = list(subject_ids_folds['fold2_ids'].values)
         # Combine (stack) fold 1 and fold 2 decision values and id's
         subject_ids_stacked = subject_ids_fold1 + subject_ids_fold2
-        if set == "replication":
-            subject_ids_stacked = [id for id in subject_ids_stacked if not pd.isnull(id)]
+        # Remove the NaN that pads the shorter fold when the sample size is odd
+        subject_ids_stacked = [id for id in subject_ids_stacked if not pd.isnull(id)]
 
 
         # Make df from stacked values (subject_id, decision_values)
@@ -43,24 +50,26 @@ def get_metrics(data_for_ridge, results_folder, set, save_filename):
             predicted_values_in_order.append(predicted_value)
 
         # Calculate accuracy for run
-        accuracy = accuracy_score(data_for_ridge_sex, predicted_values_in_order)
+        accuracy = accuracy_score(data_for_ridge_ace, predicted_values_in_order)
         accuracies_all_runs.append(accuracy)
+        balanced_accuracies_all_runs.append(balanced_accuracy_score(data_for_ridge_ace, predicted_values_in_order))
 
     accuracy_df = pd.DataFrame()
     accuracy_df['Accuracy'] = accuracies_all_runs
+    accuracy_df['Balanced Accuracy'] = balanced_accuracies_all_runs
     accuracy_df.to_csv(save_filename)
-    print(f"Average accuracy: {np.mean(accuracies_all_runs)}")
+    print(f"Average accuracy: {np.mean(accuracies_all_runs)}, average balanced accuracy: {np.mean(balanced_accuracies_all_runs)}")
 
 
 if __name__ == "__main__":
-    discovery_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/discovery_sample_siblings_removed_071524.csv")
-    res_multitimes_path = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/permutation_1000_times_112124_check"
-    disc_avg_table_filename = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/discovery_permutation_accuracy_112124_check.csv"
+    discovery_data_for_ridge = add_binarized_ace(pd.read_csv(cfg["DISCOVERY_SAMPLE_CSV"]))
+    res_multitimes_path = cfg["SVM_PERMUTATION_DIR"]
+    disc_avg_table_filename = cfg["PERMUTATION_ACCURACY_DISCOVERY_CSV"]
     get_metrics(discovery_data_for_ridge, res_multitimes_path, "discovery", disc_avg_table_filename)
 
-    replication_data_for_ridge = pd.read_csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/discovery and replication sample setup scripts/data/replication_sample_siblings_removed_071524.csv")
-    res_multitimes_path = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/permutation_1000_times_112124_check"
-    rep_avg_table_filename = "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/replication_permutation_accuracy_112124_check.csv"
+    replication_data_for_ridge = add_binarized_ace(pd.read_csv(cfg["REPLICATION_SAMPLE_CSV"]))
+    res_multitimes_path = cfg["SVM_PERMUTATION_DIR"]
+    rep_avg_table_filename = cfg["PERMUTATION_ACCURACY_REPLICATION_CSV"]
     get_metrics(replication_data_for_ridge, res_multitimes_path, "replication", rep_avg_table_filename)
 
 

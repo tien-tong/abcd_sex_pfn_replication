@@ -8,21 +8,33 @@ library(ggplot2)
 library(hexbin)
 library(plotrix)
 library(matrixStats)
+library(gifti)
+
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
 
 theme_set(theme_classic(base_size = 16))
 
 #brain input is from SVM run 100x
 # read in LH parc
-lh_schaefer1000 <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_L.csv")
+lh_schaefer1000 <- read.table(cfg$SCHAEFER1000_LABELS_CSV)
 lh_schaefer1000 <- lh_schaefer1000[1:10242,]
 # read in color lookup table
-lh_schaefer1000_ct <- read.table("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/lh_Schaefer1000_7net_cttable.csv")
+lh_schaefer1000_ct <- read.table(cfg$SCHAEFER1000_CTTABLE_CSV)
 lh_schaefer1000_ct_500 <- as.data.frame(lh_schaefer1000_ct[-1,])
 colnames(lh_schaefer1000_ct_500) <- "V1"
 setDT(lh_schaefer1000_ct_500, keep.rownames = "parcNum")
 
 # brain imaging data
-data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_discovery_LH.fsaverage5.func.gii')
+# Which map to test: gams_uncorrected_discovery, gams_uncorrected_replication, gams_fdr_discovery or gams_fdr_replication
+# (the <map_name>_LH.fsaverage5.func.gii files made by fslr_to_fsaverage5.sh); pass as the first argument or edit here
+args <- commandArgs(trailingOnly = TRUE)
+map_name <- if (length(args) >= 1) args[1] else "gams_uncorrected_discovery"
+map_label <- sub("^gams_", "", map_name)
+data_brain1 <- readgii(file.path(cfg$GAMS_GII_DIR, paste0(map_name, "_LH.fsaverage5.func.gii")))
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_uncorrected_replication_LH.fsaverage5.func.gii')
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_fdr_discovery_LH.fsaverage5.func.gii')
 #data_brain1 <- readgii('/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/gams_gii_files/gams_fdr_replication_LH.fsaverage5.func.gii')
@@ -49,11 +61,11 @@ data_parc_lh_parcnum_sort <- data_parc_lh_parcnum[order(data_parc_lh_parcnum$par
 
 
 ###read in gene data
-geneinfo <- readMat("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/AHBAprocessed/ROIxGene_Schaefer1000_INT.mat")
+geneinfo <- readMat(cfg$AHBA_ROI_GENE_MAT)
 geneinfo1 <- lapply(geneinfo, unlist, use.names=FALSE)
 geneMat <- as.data.frame(geneinfo1$parcelExpression)
 geneMat1 <- subset(geneMat, select = -V1)
-gene <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics/GeneSymbol.csv",header=TRUE)
+gene <- read.csv(cfg$GENE_SYMBOL_CSV,header=TRUE)
 colnames(gene) <- "V1"
 colnames(geneMat1) <- gene$V1
 geneMat2 <- cbind(lh_schaefer1000_ct_500, geneMat1)
@@ -66,7 +78,7 @@ geneMat2_sort_500 <- subset(geneMat2_sort, select=-V1)
 img_geneMatChrom_500 <- merge(data_parc_lh_parcnum_sort,geneMat2_sort_500, by="parcNum")
 
 
-rois <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_2mmCentroid_RAS.csv")
+rois <- read.csv(cfg$SCHAEFER1000_CENTROIDS_CSV)
 roislh <- rois[1:500,]
 
 img_geneMatChrom_roi_500 <- merge(roislh, img_geneMatChrom_500, by.x = "RoiLabel", by.y= "parcNum",all = FALSE)
@@ -87,8 +99,8 @@ geneMatChrom_500_comp <- img_geneMatChrom_roi_500_comp[(length(othercols)+1):(le
 
 ###read in gene data
 #check cell enrichement 
-cell3 <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/cellTypes/Lake18_celltypes.csv")
-genebrain <- read.csv("/Users/ashfrana/Desktop/code/ABCD GAMs replication/genetics_files/cellTypes/brain_genes_HPA.csv", header = FALSE)
+cell3 <- read.csv(cfg$CELLTYPES_LAKE_CSV)
+genebrain <- read.csv(cfg$BRAIN_GENES_HPA_CSV, header = FALSE)
 cell2 <- merge(cell3, genebrain, by.x="Gene", by.y="V1")
 
 cellRefined <- cell2$Cluster[cell2$Gene %in% gene$V1] #which values of cell2$Gene are in gene$V1 
@@ -273,17 +285,17 @@ p<-ggplot(data=t9, aes(x=cellType, y=Rank)) +
   #scale_y_discrete(breaks = c(-2000, -1000, 1000)) +
   theme(legend.position="none") + theme(axis.text.x = element_text(size= 10), axis.text.y = element_text(size= 10, color = "grey30"), axis.title=element_text(size = 18))
 
-ggsave("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/finalized_figs/genetics/cell_type_enrichments/high_res/gams_uncorrected_discovery.png", height=5, width=5, dpi=300)
+ggsave(file.path(cfg$CELLTYPE_ENRICHMENT_DIR, paste0(map_name, ".png")), height=5, width=5, dpi=300)
 
 
 
-write.csv(df_enrich_pval1, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/celltype_enrichment/gams_uncorrected_discovery_celltypes_pvalues.csv")
+write.csv(df_enrich_pval1, file.path(cfg$CELLTYPE_ENRICHMENT_DIR, paste0(map_name, "_celltypes_pvalues.csv")))
 
 
 df3_gene_astro <- subset(df3, df3$cellRefined=='Ast')
 df3_gene_astro_ranked <- df3_gene_astro[order(df3_gene_astro$corr, decreasing=TRUE), ]
 df3_gene_astro_top20 <- df3_gene_astro_ranked[1:20,]
-write.csv(df3_gene_astro_top20, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/top20_enrichment_tables/astro_top20_uncorrected_discovery.csv")
+write.csv(df3_gene_astro_top20, file.path(cfg$TOP20_TABLES_DIR, paste0("astro_top20_", map_label, ".csv")))
 #df3_gene_ranked_X <- df3_gene_X[order(df3_gene_X$corr, decreasing=TRUE), ]
 #df3_gene_X_ranked_top20 <- df3_gene_ranked_X[1:20, ]
 
@@ -291,19 +303,19 @@ write.csv(df3_gene_astro_top20, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_repli
 df3_gene_ex5b <- subset(df3, df3$cellRefined=='Ex5b')
 df3_gene_ex5b_ranked <- df3_gene_ex5b[order(df3_gene_ex5b$corr, decreasing=TRUE), ]
 df3_gene_ex5b_top20 <- df3_gene_ex5b_ranked[1:20,]
-write.csv(df3_gene_ex5b_top20, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/top20_enrichment_tables/ex5b_top20_uncorrected_discovery.csv")
+write.csv(df3_gene_ex5b_top20, file.path(cfg$TOP20_TABLES_DIR, paste0("ex5b_top20_", map_label, ".csv")))
 
 
 df3_gene_ex1 <- subset(df3, df3$cellRefined=='Ex1')
 df3_gene_ex1_ranked <- df3_gene_ex1[order(df3_gene_ex1$corr, decreasing=TRUE), ]
 df3_gene_ex1_top20 <- df3_gene_ex1_ranked[1:20,]
-write.csv(df3_gene_ex1_top20, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/top20_enrichment_tables/ex1_top20_uncorrected_discovery.csv")
+write.csv(df3_gene_ex1_top20, file.path(cfg$TOP20_TABLES_DIR, paste0("ex1_top20_", map_label, ".csv")))
 
 
 df3_gene_oli <- subset(df3, df3$cellRefined=='Oli')
 df3_gene_oli_ranked <- df3_gene_oli[order(df3_gene_oli$corr, decreasing=TRUE), ]
 df3_gene_oli_top20 <- df3_gene_oli_ranked[1:20,]
-write.csv(df3_gene_oli_top20, "/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/genetics/top20_enrichment_tables/oli_top20_uncorrected_discovery.csv")
+write.csv(df3_gene_oli_top20, file.path(cfg$TOP20_TABLES_DIR, paste0("oli_top20_", map_label, ".csv")))
 
 
 

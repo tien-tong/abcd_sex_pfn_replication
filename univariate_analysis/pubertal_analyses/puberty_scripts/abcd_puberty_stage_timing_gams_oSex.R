@@ -3,6 +3,12 @@ library(RcppCNPy)
 library(R.matlab)
 library(lme4)
 
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
+
 set.seed(42)
 
 # sets up the behavior new discovery dataframe
@@ -38,7 +44,7 @@ create_results_vec <- function(vec_to_save, nonzero_column_index, features_quant
 }
 
 main <- function(behavior_filename, set, test_name, include_age){
-    RESULTS_FOLDER <- paste0("/cbica/projects/ash_pfn_sex_diff_abcd/results/puberty_analyses_2/", set, '/', test_name)
+    RESULTS_FOLDER <- paste0(cfg$PUBERTY_RESULTS_DIR, "/", set, '/', test_name)
     # NEED BEHAVIOR NEW DISCOVERY FILE READ IN (ask arielle)
     behavior_new <- create_behavior_df(behavior_filename)
 
@@ -55,7 +61,7 @@ main <- function(behavior_filename, set, test_name, include_age){
         dim(Data_I) <- c(subjects_quantity, features_quantity);
         # for each subject, add data to matrix Data_I (each row is a subject?)
         for (k in 1:length(subject_keys)){
-            atlas_file <- paste0("/cbica/projects/ash_pfn_sex_diff_abcd/results/converted_matrices/sub-NDAR", 
+            atlas_file <- paste0(cfg$CONVERTED_MATRICES_DIR, "/sub-NDAR", 
             as.character(subject_keys[k]), "/parcel_1by1/converted_UV_mat.csv")
             mat <- read.csv(atlas_file)
             # insert row into loadings matrix for each of the subjects for each of the networks

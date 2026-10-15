@@ -1,11 +1,18 @@
 import numpy as np
 import pandas as pd
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+from pfn_config import cfg  # file paths come from CONFIG.txt at the repo root
+from ace_data import add_binarized_ace  # binarizedACE from ACE_CSV (baseline rows), as in the GAM scripts
 
 def haufe_transform(features_path, weights_path, data_for_ridge_path, nonzero_indices, save_filename):
-    features = np.load(features_path)
-    targets = pd.read_csv(data_for_ridge_path)['sex']
-    # Change this so Male=-1 and female=1
-    targets = np.array([-1 if i == "M" else 1 for i in targets]) # set Male=1, female=-1
+    # Only the subjects with a baseline binarizedACE were in the SVM (the matrix rows follow the sample csv rows)
+    data_for_ridge = add_binarized_ace(pd.read_csv(data_for_ridge_path))
+    keep = data_for_ridge['binarizedACE'].notna().values
+    features = np.load(features_path)[keep]
+    # SVM outcome: binarizedACE (0 = no, 1 = yes)
+    targets = data_for_ridge['binarizedACE'].values[keep].astype(int)
     coefs_matrix = np.load(weights_path)
     coefs = coefs_matrix.flatten()
     coefs = coefs[nonzero_indices]
@@ -31,20 +38,20 @@ def haufe_transform(features_path, weights_path, data_for_ridge_path, nonzero_in
     print("Job done!")
 
 if __name__ == "__main__":
-    discovery_data_for_ridge_path = '/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/discovery_sample_siblings_removed_071524.csv'
-    discovery_coefs_matrix_path = '/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/res_100_times_roc_check/w_brain_sex_matrix_100_times_discovery_check.npy'
-    discovery_features_path = '/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_discovery_siblings_removed.npy'
-    discovery_nonzero_index_df = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_discovery_siblings_removed_nonzero_indices.csv')
+    discovery_data_for_ridge_path = cfg["DISCOVERY_SAMPLE_CSV"]
+    discovery_coefs_matrix_path = cfg["SVM_WEIGHTS_DISCOVERY_NPY"]
+    discovery_features_path = cfg["NONZERO_MATRIX_DISCOVERY_NPY"]
+    discovery_nonzero_index_df = pd.read_csv(cfg["NONZERO_INDICES_DISCOVERY_CSV"])
     discovery_nonzero_indices = discovery_nonzero_index_df['nonzero_indices'].values
-    discovery_save_filename = "/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/res_100_times_roc_check/discovery_haufe_transformed_100_runs_weights_check.npy"
+    discovery_save_filename = cfg["HAUFE_WEIGHTS_DISCOVERY_NPY"]
     haufe_transform(discovery_features_path, discovery_coefs_matrix_path, discovery_data_for_ridge_path, discovery_nonzero_indices, discovery_save_filename)
 
-    replication_data_for_ridge_path = '/cbica/projects/ash_pfn_sex_diff_abcd/dropbox/replication_sample_siblings_removed_071524.csv'
-    replication_coefs_matrix_path = '/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/res_100_times_roc_check/w_brain_sex_matrix_100_times_replication_check.npy'
-    replication_features_path = '/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_replication_siblings_removed.npy'
-    replication_nonzero_index_df = pd.read_csv('/cbica/projects/ash_pfn_sex_diff_abcd/results/AtlasLoading_All_RemoveZero_replication_siblings_removed_nonzero_indices.csv')
+    replication_data_for_ridge_path = cfg["REPLICATION_SAMPLE_CSV"]
+    replication_coefs_matrix_path = cfg["SVM_WEIGHTS_REPLICATION_NPY"]
+    replication_features_path = cfg["NONZERO_MATRIX_REPLICATION_NPY"]
+    replication_nonzero_index_df = pd.read_csv(cfg["NONZERO_INDICES_REPLICATION_CSV"])
     replication_nonzero_indices = replication_nonzero_index_df['nonzero_indices'].values
-    replication_save_filename = "/cbica/projects/ash_pfn_sex_diff_abcd/results/multivariate_analysis/res_100_times_roc_check/replication_haufe_transformed_100_runs_weights_check.npy"
+    replication_save_filename = cfg["HAUFE_WEIGHTS_REPLICATION_NPY"]
     haufe_transform(replication_features_path, replication_coefs_matrix_path, replication_data_for_ridge_path, replication_nonzero_indices, replication_save_filename)
 
 

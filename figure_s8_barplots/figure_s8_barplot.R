@@ -7,10 +7,19 @@ library(ggplot2)
 library(data.table)
 library(ggpattern)
 
+# File paths come from CONFIG.txt at the repo root (or $PFN_CONFIG); see pfn_config.R
+.repo <- normalizePath(c(gsub("~+~", " ", sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)), fixed = TRUE), getwd())[1])
+while (!file.exists(file.path(.repo, "pfn_config.R")) && dirname(.repo) != .repo) .repo <- dirname(.repo)
+source(file.path(.repo, "pfn_config.R"))
+cfg <- load_config(Sys.getenv("PFN_CONFIG", file.path(.repo, "CONFIG.txt")))
+
 
 theme_set(theme_classic(base_size = 12))
 
-sums_all_rank <- read.csv("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/svm_replication_grouped_table_check.csv")
+# Grouped table made by group_networks.py; edit the name (and comment/uncomment the matching GAMs/SVM code
+# below) to switch between svm/gams and discovery/replication. The plot is saved as e.g. svm_replication_s8.png
+grouped_table_name <- "svm_replication_grouped_table_check.csv"
+sums_all_rank <- read.csv(file.path(cfg$FIGURE_S8_DIR, grouped_table_name))
 
 network <- c(1, 2, 3, 4, 5, 6, 7)
 netColor <- c("#AF33AD", "#4E31A8", "#7499C2", "#00A131", "#E443FF",
@@ -70,7 +79,7 @@ labelmap <- labelmap[order(labelmap$network), ]
 # gam_plot
 
 
-# ggsave("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/finalized_figs/fig_s8/gams_uncorrected_discovery.png", gam_plot, width=4.8, height=3.5, dpi=300)
+# ggsave(file.path(cfg$FIGURE_S8_DIR, sub("_grouped_table(_check)?\\.csv$", "_s8.png", grouped_table_name)), gam_plot, width=4.8, height=3.5, dpi=300)
 
 # SVM plot
 svm_plot <- ggplot(sums_all_col_rank, aes(x = reorder(network, +weights), y = weights, fill=network, alpha=factor(sex)))+
@@ -88,4 +97,4 @@ svm_plot <- ggplot(sums_all_col_rank, aes(x = reorder(network, +weights), y = we
 
 svm_plot 
 
-ggsave("/Users/ashfrana/Desktop/code/abcd_sex_pfn_replication/multivariate_analysis/svm_check_run/svm_replication_s8.png", svm_plot, width=4.8, height=3.5, dpi=300)
+ggsave(file.path(cfg$FIGURE_S8_DIR, sub("_grouped_table(_check)?\\.csv$", "_s8.png", grouped_table_name)), svm_plot, width=4.8, height=3.5, dpi=300)
