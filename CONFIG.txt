@@ -4,7 +4,7 @@
 # One KEY="value" per line. A value may use ${KEY} to refer to a key defined
 # ABOVE it (or to an environment variable such as ${HOME}). Comments go on their
 # own line. The file is valid bash, so it is read by
-#   SLURM job scripts : source "$SLURM_SUBMIT_DIR/CONFIG.txt"  (run sbatch from the repo root)
+#   SLURM job scripts : source CONFIG.txt, found from the script's own location (sbatch from any folder)
 #   Python scripts    : from pfn_config import cfg   ->  cfg["KEY"]   (pfn_config.py)
 #   R scripts         : cfg$KEY                                       (pfn_config.R)
 # Python/R scripts find this file at the repo root on their own.

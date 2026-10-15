@@ -118,7 +118,7 @@ Then:
 1. Put the ACE csv in `inputs/` and set `ACE_CSV` in CONFIG.txt to it. It needs the columns `subject_id` (`sub-<id>`), `eventname` and `binarizedACE` (0/1). The GAM scripts keep its `baseline_year_1_arm_1` rows and match them to the samples' `subjectkey` (`INV<id>`) with the prefixes stripped; subjects without a baseline ACE value are left out of the models.
 2. Put the two AHBA files in `reference_files/` (see below).
 
-Run every command below from the repo root (`code/`), after `source CONFIG.txt`. The SLURM job scripts read `CONFIG.txt` from the folder `sbatch` is run from, including the jobs that `submit_scripts.py` submits. Python and R scripts find it on their own; in RStudio, `setwd()` into the repo first.
+The commands below are written to run from the repo root (`code/`), after `source CONFIG.txt`, but the scripts themselves don't depend on the current folder: the SLURM job scripts find `CONFIG.txt` from their own location (so `sbatch` works from any folder, including the jobs that `submit_scripts.py` submits), and the Python and R scripts find it the same way; in RStudio, `setwd()` into the repo first.
 
 ## Software (Linux / Red Hat)
 
